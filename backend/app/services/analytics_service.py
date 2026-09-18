@@ -58,10 +58,12 @@ def get_executive_summary():
             GROUP BY risk_category
         """
         df_risk = pd.read_sql(sqlalchemy.text(sql_risk), conn)
-        risk_map = dict(zip(df_risk["risk_category"], df_risk["count"]))
+        risk_map = {str(k).upper(): int(v) for k, v in zip(df_risk["risk_category"], df_risk["count"]) if k}
 
     critical_cnt = int(risk_map.get("CRITICAL", 0))
     high_cnt = int(risk_map.get("HIGH", 0))
+    moderate_cnt = int(risk_map.get("MODERATE", 0) + risk_map.get("MEDIUM", 0))
+    low_cnt = int(risk_map.get("LOW", 0))
     high_critical_cnt = critical_cnt + high_cnt
     tot_cnt = int(cnt_p)
     high_pct = round((high_critical_cnt / tot_cnt) * 100.0, 1) if tot_cnt > 0 else 0.0
@@ -131,8 +133,8 @@ def get_executive_summary():
         "overall_cost_overrun_percent": float(overrun_pct),
         "critical_risk_project_count": critical_cnt,
         "high_risk_project_count": high_cnt,
-        "moderate_risk_project_count": int(risk_map.get("MODERATE", 0)),
-        "low_risk_project_count": int(risk_map.get("LOW", 0)),
+        "moderate_risk_project_count": moderate_cnt,
+        "low_risk_project_count": low_cnt,
         "total_projects": tot_cnt,
         "high_critical_risk_count": high_critical_cnt,
         "high_risk_percentage": high_pct,

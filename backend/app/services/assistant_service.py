@@ -112,24 +112,35 @@ def _lookup_project_code_by_name(query: str) -> Optional[str]:
         stop_words = {
             "details", "project", "projects", "show", "what", "give", "about",
             "risk", "cost", "the", "and", "for", "tell", "with", "overrun",
-            "status", "information", "info", "update", "latest", "please", "me"
+            "status", "information", "info", "update", "latest", "please", "me",
+            "original", "anticipated", "revised", "expenditure", "delay", "months",
+            "progress", "percentage", "compare", "between", "how", "much", "many",
+            "when", "where", "which", "will", "this", "that", "these", "those",
+            "financial", "physical", "sanctioned", "estimated", "current"
         }
         cleaned = re.sub(r'[^\w\s-]', ' ', query)
-        tokens = [w.strip() for w in cleaned.split() if len(w.strip()) >= 4 and w.lower() not in stop_words]
+        tokens = [w.strip() for w in cleaned.split() if len(w.strip()) >= 3 and w.lower() not in stop_words]
         if not tokens:
             return None
 
         with engine.connect() as conn:
-            # 1. Multi-token match
+            # 1. Multi-token match across all significant tokens
             if len(tokens) >= 2:
                 conds = [f"LOWER(project_name) LIKE :w{i}" for i in range(len(tokens))]
                 params = {f"w{i}": f"%{tokens[i].lower()}%" for i in range(len(tokens))}
-                sql = "SELECT project_code FROM projects WHERE " + " AND ".join(conds) + " LIMIT 1"
+                sql = "SELECT project_code FROM projects WHERE " + " AND ".join(conds) + " ORDER BY LENGTH(project_name) ASC LIMIT 1"
                 row = conn.execute(sqlalchemy.text(sql), params).fetchone()
                 if row:
                     return str(row[0])
 
-            # 2. Key significant token match (longest first)
+                # 2. Try consecutive token pairs
+                for i in range(len(tokens) - 1):
+                    pair_sql = "SELECT project_code FROM projects WHERE LOWER(project_name) LIKE :w1 AND LOWER(project_name) LIKE :w2 ORDER BY LENGTH(project_name) ASC LIMIT 1"
+                    row = conn.execute(sqlalchemy.text(pair_sql), {"w1": f"%{tokens[i].lower()}%", "w2": f"%{tokens[i+1].lower()}%"}).fetchone()
+                    if row:
+                        return str(row[0])
+
+            # 3. Single key significant token match (longest first)
             sorted_tokens = sorted(tokens, key=len, reverse=True)
             for token in sorted_tokens[:3]:
                 sql = "SELECT project_code FROM projects WHERE LOWER(project_name) LIKE :w ORDER BY LENGTH(project_name) ASC LIMIT 1"
