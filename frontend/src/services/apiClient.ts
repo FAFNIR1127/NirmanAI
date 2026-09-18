@@ -6,7 +6,9 @@ import {
   RiskIntelligenceResponse,
   DocumentSearchResponse,
   AssistantChatResponse,
-  GeographicRiskResponse
+  GeographicRiskResponse,
+  MLPredictionRequest,
+  MLPredictionResponse
 } from '../types/api';
 
 const API_BASE_URL = '/api';
@@ -259,6 +261,24 @@ export const api = {
     }));
 
     return { states };
+  },
+
+  // Machine Learning Prediction & What-If Simulation
+  async predictMLRisk(payload: MLPredictionRequest): Promise<MLPredictionResponse> {
+    const res = await client.post('/ml/predict', payload);
+    return res.data;
+  },
+
+  // ML Scientific Metrics & Holdout Report
+  async getMLMetrics(): Promise<any> {
+    const res = await client.get('/ml/metrics');
+    return res.data;
+  },
+
+  // ML Model Info & Cryptographic Provenance
+  async getMLModelInfo(): Promise<any> {
+    const res = await client.get('/ml/model_info');
+    return res.data;
   }
 };
 

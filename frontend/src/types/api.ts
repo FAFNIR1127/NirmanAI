@@ -162,3 +162,41 @@ export interface GeographicRiskItem {
 export interface GeographicRiskResponse {
   states: GeographicRiskItem[];
 }
+
+export interface MLRiskDriver {
+  feature: string;
+  attribution: number;
+  description: string;
+}
+
+export interface MLPredictionRequest {
+  project_code?: string;
+  original_cost?: number;
+  revised_cost?: number;
+  anticipated_cost?: number;
+  cumulative_expenditure?: number;
+  physical_progress?: number;
+  months_elapsed?: number;
+  months_originally_planned?: number;
+  months_remaining?: number;
+  delay_months?: number;
+  sector?: string;
+  agency?: string;
+  state?: string;
+}
+
+export interface MLPredictionResponse {
+  mode: 'existing_project' | 'what_if_analysis';
+  project_code?: string | null;
+  project_name?: string | null;
+  predicted_risk_probability: number;
+  risk_score: number;
+  risk_tier: 'High' | 'Moderate' | 'Low';
+  is_severe_risk_alert: boolean;
+  operational_threshold: number;
+  confidence_assessment: string;
+  key_risk_drivers: MLRiskDriver[];
+  protective_factors: MLRiskDriver[];
+  inference_latency_ms: number;
+}
+

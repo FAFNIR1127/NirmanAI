@@ -9,6 +9,7 @@ import { EvidenceSearch } from './components/rag/EvidenceSearch';
 import { GeographicRiskMap } from './components/analytics/GeographicRiskMap';
 import { ProjectComparison } from './components/portfolio/ProjectComparison';
 import { SystemHealth } from './components/health/SystemHealth';
+import { RiskSimulator } from './components/simulator/RiskSimulator';
 import { AIAssistantDrawer } from './components/assistant/AIAssistantDrawer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -97,6 +98,10 @@ export function App() {
             <ProjectComparison
               onSelectProject={handleSelectProject}
             />
+          )}
+
+          {activeTab === 'simulator' && (
+            <RiskSimulator />
           )}
 
           {activeTab === 'health' && (

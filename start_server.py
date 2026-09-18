@@ -27,8 +27,10 @@ def main():
     print("Starting FastAPI Uvicorn Server on http://0.0.0.0:8000 ...")
 
     # Launch uvicorn process
+    env = os.environ.copy()
+    env["PYTHONPATH"] = project_root + (":" + env.get("PYTHONPATH", "") if env.get("PYTHONPATH") else "")
     cmd = [python_venv, "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-    proc = subprocess.Popen(cmd, cwd=project_root)
+    proc = subprocess.Popen(cmd, cwd=project_root, env=env)
 
     # Wait for server readiness
     health_url = "http://127.0.0.1:8000/api/health"

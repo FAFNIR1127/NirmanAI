@@ -50,6 +50,11 @@ app.include_router(assistant.router)
 app.include_router(risk_intelligence.router)
 app.include_router(ml.router)
 
+from pathlib import Path
+figures_dir = Path("/Users/sanket/SIH/NirmanAnti/reports/figures")
+if figures_dir.exists():
+    app.mount("/api/reports/figures", StaticFiles(directory=str(figures_dir)), name="figures")
+
 from backend.app.services.cache_service import cache_service
 
 # Startup Hook: Verify Database Vitality & Initialize Cache

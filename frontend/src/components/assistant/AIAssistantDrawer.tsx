@@ -69,7 +69,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
       sender: 'assistant',
       text: activeProjectCode
         ? `Greetings. I am **Nirman AI Copilot** — your infrastructure intelligence assistant.\n\nActive project context is set to **\`${activeProjectCode}\`**. I can answer questions about its cost overrun, risk drivers, delay analysis, and historical PAIMANA report evidence.\n\nWhat would you like to know?`
-        : `Greetings. I am **Nirman AI Copilot**, powered by Gemini AI and grounded in live PostgreSQL data, XGBoost risk scores, and 331,206 PAIMANA audit report chunks.\n\nAsk me anything about the **3,589 infrastructure projects** I monitor. For example:\n- *"Why is project 220100262 at critical risk?"*\n- *"Which states have the most cost overrun?"*\n- *"What does PAIMANA say about railway project delays?"*`,
+        : `Greetings. I am **Nirman AI Copilot**, powered by Gemini AI and grounded in live PostgreSQL data, calibrated XGBoost risk scores, and 331,206 PAIMANA audit report chunks.\n\nAsk me anything about the **5,461 infrastructure projects (2,996 active)** I monitor. For example:\n- *"Why is project 220100262 at critical risk?"*\n- *"Which states have the most cost overrun?"*\n- *"What does PAIMANA say about railway project delays?"*`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       followups: activeProjectCode
         ? [

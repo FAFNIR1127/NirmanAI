@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Table, AlertTriangle, FileSearch, Map, GitCompare, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Table, AlertTriangle, FileSearch, Map, GitCompare, ShieldCheck, Sliders } from 'lucide-react';
 
-export type TabType = 'overview' | 'portfolio' | 'risk' | 'evidence' | 'map' | 'compare' | 'health';
+export type TabType = 'overview' | 'portfolio' | 'risk' | 'evidence' | 'map' | 'compare' | 'simulator' | 'health';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -17,7 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, activePr
     { id: 'evidence', label: 'Audit Evidence (RAG)', icon: FileSearch },
     { id: 'map', label: 'Geographic Risk', icon: Map },
     { id: 'compare', label: 'Project Compare', icon: GitCompare },
-    { id: 'health', label: 'System Health', icon: ShieldCheck },
+    { id: 'simulator', label: 'What-If Simulator', icon: Sliders },
+    { id: 'health', label: 'System Health & Governance', icon: ShieldCheck },
   ];
 
   return (

@@ -47,12 +47,27 @@ def get_model_metrics():
     - Confusion Matrix (Operational Threshold vs Default 0.50)
     - Subgroup Dissections (by Sector, Cost Tier, Project Age)
     - Temporal Stability (2024 vs 2025)
+    - Cryptographic Provenance Hashes
+    - Population Stability Index (PSI) Feature Drift
     """
     report_file = REPORTS_DIR / "final_holdout_evaluation_report.json"
     if not report_file.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Holdout evaluation report not found.")
     with open(report_file, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    meta_file = VERSION_DIR / "model_version_metadata.json"
+    if meta_file.exists():
+        with open(meta_file, "r") as mf:
+            data["metadata"] = json.load(mf)
+
+    drift_file = REPORTS_DIR / "temporal_drift_and_shap_directionality.json"
+    if drift_file.exists():
+        with open(drift_file, "r") as df:
+            data["drift"] = json.load(df)
+
+    return data
+
 
 
 @router.get("/model_info", summary="Get Production Model Architecture & Feature Schema")
