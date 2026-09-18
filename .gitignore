@@ -10,11 +10,9 @@ ENV/
 env.bak/
 venv.bak/
 
-# Node.js & Frontend Build Outputs
+# Node.js & Frontend Dependencies
 node_modules/
 frontend/node_modules/
-frontend/dist/
-dist/
 .vite/
 npm-debug.log*
 yarn-debug.log*
@@ -50,9 +48,6 @@ logs/
 # Heavy Raw Data Dumps (>100MB / Multi-GB PDF files)
 raw/
 
-# Heavy intermediate document parsing dumps (re-generable via scripts)
-processed/documents/
-processed/extracted/
 
 # Operating System & IDE Files
 .DS_Store

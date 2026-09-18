@@ -13,9 +13,15 @@ def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
     os.chdir(project_root)
 
-    python_venv = os.path.join(project_root, ".venv", "bin", "python")
-    if not os.path.exists(python_venv):
-        python_venv = sys.executable
+    # Detect virtualenv python on Windows or Unix
+    python_venv = sys.executable
+    venv_unix = os.path.join(project_root, ".venv", "bin", "python")
+    venv_win = os.path.join(project_root, ".venv", "Scripts", "python.exe")
+    
+    if os.path.exists(venv_win):
+        python_venv = venv_win
+    elif os.path.exists(venv_unix):
+        python_venv = venv_unix
 
     print(f"Using Python runtime: {python_venv}")
     print("Starting FastAPI Uvicorn Server on http://0.0.0.0:8000 ...")
