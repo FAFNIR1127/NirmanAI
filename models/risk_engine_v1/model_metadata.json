@@ -1,0 +1,21 @@
+{
+  "model_version": "risk_engine_v1",
+  "model_architecture": "XGBoost Classifier + 5-Fold Sigmoid CalibratedClassifierCV",
+  "target_variable": "target_severe_risk_12m",
+  "prediction_horizon_months": 12,
+  "calibration_method": "sigmoid_platt_scaling",
+  "operational_threshold": 0.28,
+  "training_period": "2018-04 to 2023-04",
+  "validation_period": "2024-04 to 2025-04",
+  "evaluable_train_samples": 6543,
+  "evaluable_val_samples": 939,
+  "metrics_untouched_holdout": {
+    "accuracy": 0.6837,
+    "precision": 0.3333,
+    "recall_at_optimal_threshold": 0.6612,
+    "f1_score_at_optimal_threshold": 0.3846,
+    "roc_auc": 0.5464,
+    "pr_auc": 0.3077,
+    "brier_score_loss": 0.208
+  }
+}

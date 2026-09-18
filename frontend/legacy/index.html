@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Nirman — AI Risk & Data Intelligence Platform</title>
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <div class="app-layout">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-shield-halved text-accent"></i>
+        </div>
+        <div class="brand-text">
+          <h2>NIRMAN</h2>
+          <span>Risk & RAG Intelligence</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Operations</div>
+        <a href="#dashboard" class="nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Executive Dashboard</span>
+        </a>
+        <a href="#explorer" class="nav-item" data-view="explorer">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Project Explorer</span>
+        </a>
+        <a href="#risk-intelligence" class="nav-item" data-view="risk-intelligence">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Risk & Trajectory</span>
+        </a>
+        <a href="#early-warning" class="nav-item" data-view="early-warning">
+          <i class="fa-solid fa-bell"></i>
+          <span>Early Warnings</span>
+          <span class="badge badge-danger" id="nav-ew-count">0</span>
+        </a>
+        <a href="#documents" class="nav-item" data-view="documents">
+          <i class="fa-solid fa-file-contract"></i>
+          <span>RAG Knowledge Search</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="toggle-assistant-btn" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>AI Assistant</span>
+        </button>
+        <div class="system-status">
+          <span class="status-indicator online"></span>
+          <span>Backend Connected (v1.0)</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- TOP HEADER BAR -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1 id="page-title">Executive Dashboard</h1>
+          <p id="page-subtitle">PAIMANA Infrastructure Risk Portfolio & Early Warning Intelligence</p>
+        </div>
+
+        <div class="header-actions">
+          <div class="quick-search">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="global-project-search" placeholder="Quick find project code (e.g. 020100044)...">
+            <button id="global-search-btn" class="btn btn-sm btn-secondary">Go</button>
+          </div>
+          <button id="refresh-data-btn" class="btn btn-icon btn-secondary" title="Refresh Portfolio Data">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW CONTAINERS -->
+      <div class="view-viewport">
+        
+        <!-- 1. EXECUTIVE DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-panel active">
+          <!-- KPI Summary Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon icon-blue"><i class="fa-solid fa-building-columns"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Monitored Projects</span>
+                <h3 class="kpi-value" id="kpi-total-projects">--</h3>
+                <span class="kpi-subtext">PAIMANA PostgreSQL Master</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon icon-danger"><i class="fa-solid fa-fire"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">High / Critical Risk</span>
+                <h3 class="kpi-value" id="kpi-high-risk-count">--</h3>
+                <span class="kpi-subtext" id="kpi-high-risk-pct">--% of portfolio</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon icon-warning"><i class="fa-solid fa-arrow-trend-up"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Avg Cost Expansion</span>
+                <h3 class="kpi-value" id="kpi-avg-cost-expansion">--</h3>
+                <span class="kpi-subtext">Original vs Latest Sanctioned</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon icon-info"><i class="fa-solid fa-clock-history"></i></div>
+              <div class="kpi-content">
+                <span class="kpi-label">Avg Schedule Slippage</span>
+                <h3 class="kpi-value" id="kpi-avg-schedule-slippage">--</h3>
+                <span class="kpi-subtext">Slippage Ratio across active projects</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Early Warning Action Table -->
+          <div class="dashboard-grid mt-4">
+            <div class="card card-table full-width">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <i class="fa-solid fa-bell text-danger"></i>
+                  <h3>Early Warning Priority Matrix (Cutoff T* = 0.28)</h3>
+                </div>
+                <button class="btn btn-sm btn-outline" id="view-all-ew-btn">View All Warnings</button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="data-table" id="dashboard-ew-table">
+                    <thead>
+                      <tr>
+                        <th>Project Code</th>
+                        <th>Project Name</th>
+                        <th>State / Sector</th>
+                        <th>Risk Score</th>
+                        <th>Category</th>
+                        <th>Primary Risk Driver</th>
+                        <th>Urgency</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-ew-tbody">
+                      <tr><td colspan="8" class="text-center text-muted p-4">Loading early warning priority matrix...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. PROJECT EXPLORER VIEW -->
+        <section id="view-explorer" class="view-panel">
+          <div class="filter-toolbar card p-3 mb-3">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="filter-state">State</label>
+                <select id="filter-state" class="form-control">
+                  <option value="">All States</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filter-sector">Sector</label>
+                <select id="filter-sector" class="form-control">
+                  <option value="">All Sectors</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filter-risk">Risk Category</label>
+                <select id="filter-risk" class="form-control">
+                  <option value="">All Risk Levels</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="MODERATE">MODERATE</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filter-search">Search Name / Code</label>
+                <input type="text" id="filter-search" class="form-control" placeholder="Search projects...">
+              </div>
+              <div class="filter-group filter-btn-group">
+                <button id="apply-filters-btn" class="btn btn-primary"><i class="fa-solid fa-filter"></i> Apply</button>
+                <button id="reset-filters-btn" class="btn btn-secondary">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-table">
+            <div class="card-header">
+              <span id="explorer-count-label" class="text-muted">Showing projects...</span>
+              <div class="pagination-controls">
+                <button id="prev-page-btn" class="btn btn-sm btn-secondary" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="page-indicator" class="px-2">Page 1</span>
+                <button id="next-page-btn" class="btn btn-sm btn-secondary"><i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="explorer-table">
+                  <thead>
+                    <tr>
+                      <th>Project Code</th>
+                      <th>Project Name</th>
+                      <th>State</th>
+                      <th>Sector</th>
+                      <th>Cost Expansion</th>
+                      <th>Schedule Slippage</th>
+                      <th>Risk Score</th>
+                      <th>Category</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="explorer-tbody">
+                    <tr><td colspan="9" class="text-center p-4">Loading project directory...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. PROJECT RISK & TRAJECTORY VIEW -->
+        <section id="view-risk-intelligence" class="view-panel">
+          <div class="project-lookup-bar card p-3 mb-4">
+            <div class="lookup-flex">
+              <label for="risk-project-input" class="lookup-label">Select or Enter Project Code:</label>
+              <input type="text" id="risk-project-input" class="form-control" placeholder="e.g. 020100044" value="020100044">
+              <button id="risk-analyze-btn" class="btn btn-primary"><i class="fa-solid fa-microscope"></i> Analyze Risk Engine</button>
+            </div>
+          </div>
+
+          <div id="risk-detail-content">
+            <!-- Project Header Banner -->
+            <div class="project-banner-card card mb-4">
+              <div class="banner-main">
+                <div class="project-title-block">
+                  <span class="badge badge-outline mb-1" id="rd-project-code">--</span>
+                  <h2 id="rd-project-name">Select a project to analyze</h2>
+                  <p class="text-muted" id="rd-project-meta">-- | -- | --</p>
+                </div>
+                <div class="risk-score-pill-box">
+                  <div class="score-circle" id="rd-score-circle">
+                    <span class="score-num" id="rd-score-value">--</span>
+                    <span class="score-max">/100</span>
+                  </div>
+                  <div class="score-meta">
+                    <span class="badge" id="rd-category-badge">--</span>
+                    <span class="prob-text" id="rd-probability-text">Risk Prob: --%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="banner-stats-row">
+                <div class="b-stat">
+                  <span class="b-label">Original Cost</span>
+                  <span class="b-val" id="rd-cost-original">₹0 Cr</span>
+                </div>
+                <div class="b-stat">
+                  <span class="b-label">Latest Cost</span>
+                  <span class="b-val" id="rd-cost-latest">₹0 Cr</span>
+                </div>
+                <div class="b-stat">
+                  <span class="b-label">Cost Expansion</span>
+                  <span class="b-val" id="rd-cost-expansion">1.00x</span>
+                </div>
+                <div class="b-stat">
+                  <span class="b-label">Schedule Slippage Ratio</span>
+                  <span class="b-val" id="rd-schedule-slippage">0.00</span>
+                </div>
+                <div class="b-stat">
+                  <span class="b-label">Milestone Progress Rate</span>
+                  <span class="b-val" id="rd-progress-rate">0.00%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Risk Trajectory & SHAP Grid -->
+            <div class="grid-2-col mb-4">
+              
+              <!-- Trajectory Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-chart-line text-accent"></i>
+                    <h3>Model Trajectory & Historical Trend</h3>
+                  </div>
+                  <span class="badge badge-info" id="rd-trend-badge">--</span>
+                </div>
+                <div class="card-body">
+                  <div class="trend-summary-box mb-3">
+                    <div class="trend-stat">
+                      <span class="text-muted">Mathematical Trend:</span>
+                      <strong id="rd-trend-classification">--</strong>
+                    </div>
+                    <div class="trend-stat">
+                      <span class="text-muted">Slope (m):</span>
+                      <code id="rd-trend-slope">--</code>
+                    </div>
+                    <div class="trend-stat">
+                      <span class="text-muted">Variance (σ²):</span>
+                      <code id="rd-trend-variance">--</code>
+                    </div>
+                  </div>
+
+                  <div class="trajectory-table-wrap">
+                    <table class="data-table compact">
+                      <thead>
+                        <tr>
+                          <th>Reporting Month</th>
+                          <th>Model Version</th>
+                          <th>Risk Score</th>
+                          <th>Risk Prob</th>
+                          <th>Category</th>
+                        </tr>
+                      </thead>
+                      <tbody id="rd-trajectory-tbody">
+                        <tr><td colspan="5" class="text-center">No trajectory loaded</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SHAP Risk Drivers Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-square-poll-vertical text-warning"></i>
+                    <h3>SHAP Risk Drivers & Protective Factors</h3>
+                  </div>
+                  <span class="badge badge-secondary" id="rd-model-version">Model v1.0</span>
+                </div>
+                <div class="card-body">
+                  <div class="shap-section mb-4">
+                    <h4 class="shap-title text-danger"><i class="fa-solid fa-arrow-up"></i> Top Risk Drivers (Adverse Impact)</h4>
+                    <div id="rd-risk-drivers-list" class="shap-list">
+                      <!-- Rendered by JS -->
+                    </div>
+                  </div>
+
+                  <div class="shap-section">
+                    <h4 class="shap-title text-success"><i class="fa-solid fa-arrow-down"></i> Protective Factors (Mitigating Impact)</h4>
+                    <div id="rd-protective-factors-list" class="shap-list">
+                      <!-- Rendered by JS -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Prescriptive Recommendations -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <i class="fa-solid fa-lightbulb text-accent"></i>
+                  <h3>Prescriptive Interventions & Policy Triggers</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="rd-recommendations-list" class="recommendations-grid">
+                  <!-- Rendered by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Executive Briefing Document -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <i class="fa-solid fa-file-invoice text-info"></i>
+                  <h3>Automated Executive Briefing</h3>
+                </div>
+                <button id="generate-briefing-btn" class="btn btn-sm btn-secondary"><i class="fa-solid fa-rotate"></i> Refresh Briefing</button>
+              </div>
+              <div class="card-body">
+                <div id="rd-briefing-content" class="briefing-box">
+                  <p class="text-muted">Click analyze to generate automated briefing...</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 4. EARLY WARNING MATRIX VIEW -->
+        <section id="view-early-warning" class="view-panel">
+          <div class="card mb-4">
+            <div class="card-header">
+              <div class="card-title-group">
+                <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                <h3>Full Portfolio Early Warning Prioritization Matrix</h3>
+              </div>
+              <div class="ew-filter-controls">
+                <span class="text-muted">Filter Threshold: </span>
+                <span class="badge badge-danger">Probability &ge; 0.28 (T*)</span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="full-ew-table">
+                  <thead>
+                    <tr>
+                      <th>Urgency</th>
+                      <th>Project Code</th>
+                      <th>Project Name</th>
+                      <th>State / Sector</th>
+                      <th>Risk Score</th>
+                      <th>Primary Risk Driver</th>
+                      <th>Urgency Rationale</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="full-ew-tbody">
+                    <tr><td colspan="8" class="text-center p-4">Loading full early warning matrix...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. RAG KNOWLEDGE SEARCH VIEW -->
+        <section id="view-documents" class="view-panel">
+          <div class="card p-4 mb-4">
+            <h3 class="mb-3"><i class="fa-solid fa-magnifying-glass-chart text-accent"></i> PAIMANA Document RAG Hybrid Search</h3>
+            <div class="rag-search-box">
+              <div class="input-group mb-3">
+                <input type="text" id="rag-query-input" class="form-control form-control-lg" placeholder="Ask or search document knowledge (e.g. 'What is the status of project 020100044 in April 2020?')">
+                <button id="rag-search-btn" class="btn btn-primary btn-lg"><i class="fa-solid fa-paper-plane"></i> Search RAG</button>
+              </div>
+              <div class="rag-filters-row">
+                <input type="text" id="rag-filter-project" class="form-control form-control-sm" placeholder="Filter Project Code">
+                <input type="text" id="rag-filter-month" class="form-control form-control-sm" placeholder="Filter Reporting Month (YYYY-MM)">
+                <input type="text" id="rag-filter-doctype" class="form-control form-control-sm" placeholder="Filter Document Type">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span id="rag-results-count" class="text-muted">Enter a search query to retrieve grounded PAIMANA document chunks</span>
+            </div>
+            <div class="card-body">
+              <div id="rag-results-list" class="rag-results-container">
+                <div class="empty-state">
+                  <i class="fa-solid fa-file-pdf empty-icon"></i>
+                  <h4>Search PAIMANA PDF Knowledge Base</h4>
+                  <p class="text-muted">Query 331,206 processed document chunks with hybrid vector search and metadata filtering.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- RIGHT SLIDE-OVER DRAWER: CITATION EVIDENCE DRAWER -->
+    <div id="evidence-drawer" class="drawer">
+      <div class="drawer-backdrop"></div>
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <div class="drawer-title-group">
+            <i class="fa-solid fa-quote-left text-accent"></i>
+            <h3 id="evidence-drawer-title">Citation Evidence [E#]</h3>
+          </div>
+          <button class="drawer-close-btn" id="close-evidence-drawer"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body">
+          <div class="evidence-meta-card card p-3 mb-3">
+            <div class="meta-item">
+              <span class="meta-label">Project Code:</span>
+              <strong id="ev-project-code">--</strong>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Source File:</span>
+              <code id="ev-source-file">--</code>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Document Type:</span>
+              <span id="ev-doc-type" class="badge badge-secondary">--</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Reporting Month:</span>
+              <span id="ev-month">--</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Page Number:</span>
+              <span id="ev-page">--</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Relevance Score:</span>
+              <span id="ev-score" class="badge badge-success">--</span>
+            </div>
+          </div>
+
+          <div class="card p-3 mb-3">
+            <h4 class="mb-2 text-muted"><i class="fa-solid fa-file-lines"></i> Verified Text Chunk</h4>
+            <div id="ev-chunk-text" class="raw-text-box">
+              Select a citation tag in the chat assistant to view grounded evidence context.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SLIDE-OVER DRAWER: GLOBAL AI ASSISTANT DRAWER -->
+    <div id="assistant-drawer" class="drawer">
+      <div class="drawer-backdrop"></div>
+      <div class="drawer-content assistant-drawer-width">
+        <div class="drawer-header">
+          <div class="drawer-title-group">
+            <i class="fa-solid fa-robot text-accent"></i>
+            <div>
+              <h3>Nirman AI Orchestrator</h3>
+              <span class="text-muted text-xs">Risk Engine v1.0 + RAG Knowledge</span>
+            </div>
+          </div>
+          <button class="drawer-close-btn" id="close-assistant-drawer"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body assistant-body p-0">
+          
+          <!-- Suggested Quick Prompts -->
+          <div class="quick-prompts-bar">
+            <span class="prompts-label">Quick Prompts:</span>
+            <div class="prompts-chips">
+              <button class="chip-btn" data-prompt="What is the current risk of project 020100044?">Risk of 020100044</button>
+              <button class="chip-btn" data-prompt="Show projects in Maharashtra with critical risk">Critical Risk in Maharashtra</button>
+              <button class="chip-btn" data-prompt="Why is project 020100044 risky according to documents?">Doc evidence for 020100044</button>
+              <button class="chip-btn" data-prompt="Summarize the top early warning risk drivers">Top Early Warnings</button>
+            </div>
+          </div>
+
+          <!-- Chat Stream Messages -->
+          <div id="assistant-messages" class="messages-container">
+            <div class="message assistant-msg">
+              <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+              <div class="msg-bubble">
+                <p>Hello! I am the <strong>Nirman AI Assistant</strong>. I combine <strong>Risk Engine v1</strong> machine learning predictions with <strong>PAIMANA RAG document search</strong>.</p>
+                <p class="text-xs text-muted mt-1">Ask me about risk scores, SHAP drivers, early warnings, or historical document evidence!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Footer -->
+          <div class="assistant-input-footer">
+            <div class="chat-input-wrapper">
+              <textarea id="assistant-input" rows="2" placeholder="Ask Nirman AI (e.g. 'Compare project 020100044 and 040000731')..."></textarea>
+              <button id="send-assistant-btn" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+            <div class="assistant-disclaimer">
+              <span>Answers are 100% grounded in PostgreSQL & PAIMANA RAG vectors with verified citations [E#].</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Nirman — Risk Intelligence Dashboard</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: var(--background, #0f172a);
+      color: var(--foreground, #f8fafc);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-10 min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- Header Banner -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-[var(--border,#334155)] gap-4">
+      <div>
+        <div class="flex items-center space-x-3">
+          <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider rounded-full border border-indigo-500/30">MoSPI / PAIMANA AI</span>
+          <span class="text-xs text-[var(--muted-foreground,#94a3b8)]">Engine Version: risk_engine_v1</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight mt-2 text-[var(--foreground,#f8fafc)]">Project Nirman — Risk Intelligence Engine</h1>
+        <p class="text-sm text-[var(--muted-foreground,#94a3b8)]">Early Warning Infrastructure Risk Analytics & TreeSHAP Feature Attributions</p>
+      </div>
+
+      <!-- Search Control -->
+      <div class="flex items-center space-x-2">
+        <input id="projectInput" type="text" value="020100044" placeholder="Enter Project Code (e.g. 020100044)" 
+               class="px-4 py-2 bg.bg-[var(--card,#1e293b)] bg-slate-800 border border-[var(--border,#334155)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64 text-white">
+        <button onclick="analyzeRisk()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition shadow-lg flex items-center space-x-2">
+          <span>Analyze Risk</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Preset Buttons -->
+    <div class="flex items-center space-x-3 text-xs text-[var(--muted-foreground,#94a3b8)]">
+      <span>Sample Monitored Projects:</span>
+      <button onclick="loadPreset('020100044')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-indigo-300 font-medium">020100044 (Bhavini Reactor)</button>
+      <button onclick="loadPreset('N04000073')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-indigo-300 font-medium">N04000073 (Railway Line)</button>
+      <button onclick="loadPreset('N24002237')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-indigo-300 font-medium">N24002237 (Highway Project)</button>
+    </div>
+
+    <!-- Main Grid -->
+    <div id="dashboardContent" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Card 1: Project Metadata & Score -->
+      <div class="bg-[var(--card,#1e293b)] bg-slate-800/80 p-6 rounded-xl border border-[var(--border,#334155)] flex flex-col justify-between space-y-6">
+        <div>
+          <span id="projCode" class="text-xs font-bold text-indigo-400 uppercase tracking-widest">N04000073</span>
+          <h2 id="projName" class="text-lg font-bold mt-1 leading-snug">PROTOTYPE FAST BREEDER REACTOR</h2>
+          <p id="projAgency" class="text-xs text-[var(--muted-foreground,#94a3b8)] mt-1">BHAVNI | TAMIL NADU</p>
+        </div>
+
+        <!-- 0-100 Score Display -->
+        <div class="text-center py-4 bg-slate-900/60 rounded-xl border border-slate-700/50">
+          <div id="riskScoreVal" class="text-5xl font-black text-amber-400">74.0</div>
+          <div id="riskCatBadge" class="inline-block mt-2 px-4 py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full border border-amber-500/30">HIGH RISK</div>
+          <p class="text-xs text-slate-400 mt-2">12-Month Severe Risk Probability: <span id="probVal" class="font-bold text-slate-200">74%</span></p>
+        </div>
+
+        <div class="text-xs text-slate-400 space-y-1">
+          <div class="flex justify-between"><span>Reporting Period:</span><span id="reportingMonth" class="text-slate-200 font-medium">2024-04</span></div>
+          <div class="flex justify-between"><span>Early Warning Flag:</span><span id="earlyWarningFlag" class="text-emerald-400 font-bold">TRIGGERED (T* ≥ 0.28)</span></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Risk Sub-Indices -->
+      <div class="bg-[var(--card,#1e293b)] bg-slate-800/80 p-6 rounded-xl border border-[var(--border,#334155)] space-y-6">
+        <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Sub-Index Breakdown</h3>
+
+        <!-- Cost Risk Meter -->
+        <div class="space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Cost Risk Index</span>
+            <span id="costIndexVal" class="font-bold text-amber-400">68.4 / 100</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-3 border border-slate-700 overflow-hidden">
+            <div id="costBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 68.4%"></div>
+          </div>
+        </div>
+
+        <!-- Schedule Risk Meter -->
+        <div class="space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Schedule Risk Index</span>
+            <span id="scheduleIndexVal" class="font-bold text-amber-400">71.2 / 100</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-3 border border-slate-700 overflow-hidden">
+            <div id="scheduleBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 71.2%"></div>
+          </div>
+        </div>
+
+        <!-- Threshold Legend -->
+        <div class="p-4 bg-slate-900/40 rounded-lg text-xs space-y-2 border border-slate-800">
+          <span class="font-semibold text-slate-300">Risk Categorization Scale:</span>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>0–30: LOW</span></div>
+            <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span><span>31–60: MODERATE</span></div>
+            <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span><span>61–80: HIGH</span></div>
+            <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>81–100: CRITICAL</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: TreeSHAP Explanations & Protective Factors -->
+      <div class="bg-[var(--card,#1e293b)] bg-slate-800/80 p-6 rounded-xl border border-[var(--border,#334155)] space-y-5">
+        <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider">TreeSHAP Risk Explainability</h3>
+
+        <!-- Risk Drivers -->
+        <div class="space-y-2">
+          <span class="text-xs font-semibold text-rose-400 flex items-center space-x-1">
+            <span>↑ Top Risk Drivers (+ Impact)</span>
+          </span>
+          <div id="riskDriversList" class="space-y-2">
+            <!-- Dynamic items -->
+          </div>
+        </div>
+
+        <!-- Protective Factors -->
+        <div class="space-y-2 pt-2 border-t border-slate-700/60">
+          <span class="text-xs font-semibold text-emerald-400 flex items-center space-x-1">
+            <span>✓ Protective Factors (- Impact)</span>
+          </span>
+          <div id="protectiveFactorsList" class="space-y-2">
+            <!-- Dynamic items -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    async function analyzeRisk() {
+      const code = document.getElementById('projectInput').value.trim();
+      if (!code) return;
+
+      try {
+        const res = await fetch(`http://localhost:8000/api/risk/predict/${code}`);
+        if (!res.ok) {
+          alert('Project code not found or error querying API');
+          return;
+        }
+        const data = await res.json();
+        renderDashboard(data);
+      } catch (err) {
+        console.error(err);
+        alert('Could not connect to FastAPI server at http://localhost:8000');
+      }
+    }
+
+    function loadPreset(code) {
+      document.getElementById('projectInput').value = code;
+      analyzeRisk();
+    }
+
+    function renderDashboard(data) {
+      document.getElementById('projCode').innerText = data.project_code;
+      document.getElementById('projName').innerText = data.project_name || 'PROJECT ASSESSOR DATA';
+      document.getElementById('projAgency').innerText = `${data.agency || 'N/A'} | ${data.state || 'INDIA'}`;
+      document.getElementById('reportingMonth').innerText = data.reporting_month;
+      
+      const score = data.risk_score;
+      document.getElementById('riskScoreVal').innerText = score.toFixed(1);
+      document.getElementById('probVal').innerText = `${(data.predicted_severe_risk_prob * 100).toFixed(1)}%`;
+      
+      // Color Badge
+      const catBadge = document.getElementById('riskCatBadge');
+      catBadge.innerText = `${data.risk_category} RISK`;
+      if (data.risk_category === 'CRITICAL') {
+        catBadge.className = 'inline-block mt-2 px-4 py-1 bg-rose-500/20 text-rose-300 text-xs font-bold rounded-full border border-rose-500/30';
+        document.getElementById('riskScoreVal').className = 'text-5xl font-black text-rose-400';
+      } else if (data.risk_category === 'HIGH') {
+        catBadge.className = 'inline-block mt-2 px-4 py-1 bg-orange-500/20 text-orange-300 text-xs font-bold rounded-full border border-orange-500/30';
+        document.getElementById('riskScoreVal').className = 'text-5xl font-black text-orange-400';
+      } else if (data.risk_category === 'MODERATE') {
+        catBadge.className = 'inline-block mt-2 px-4 py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full border border-amber-500/30';
+        document.getElementById('riskScoreVal').className = 'text-5xl font-black text-amber-400';
+      } else {
+        catBadge.className = 'inline-block mt-2 px-4 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30';
+        document.getElementById('riskScoreVal').className = 'text-5xl font-black text-emerald-400';
+      }
+
+      // Early Warning Flag
+      const ew = document.getElementById('earlyWarningFlag');
+      if (data.early_warning) {
+        ew.innerText = 'TRIGGERED (T* ≥ 0.28)';
+        ew.className = 'text-rose-400 font-bold';
+      } else {
+        ew.innerText = 'NORMAL (T* < 0.28)';
+        ew.className = 'text-emerald-400 font-bold';
+      }
+
+      // Meters
+      document.getElementById('costIndexVal').innerText = `${data.cost_risk_index.toFixed(1)} / 100`;
+      document.getElementById('costBar').style.width = `${Math.min(100, data.cost_risk_index)}%`;
+
+      document.getElementById('scheduleIndexVal').innerText = `${data.schedule_risk_index.toFixed(1)} / 100`;
+      document.getElementById('scheduleBar').style.width = `${Math.min(100, data.schedule_risk_index)}%`;
+
+      // Drivers
+      const driversContainer = document.getElementById('riskDriversList');
+      driversContainer.innerHTML = '';
+      if (data.risk_drivers.length === 0) {
+        driversContainer.innerHTML = '<p class="text-xs text-slate-500">No major risk drivers detected</p>';
+      } else {
+        data.risk_drivers.forEach(d => {
+          const item = document.createElement('div');
+          item.className = 'p-2.5 bg-rose-950/30 border border-rose-900/40 rounded-lg flex justify-between items-center text-xs';
+          item.innerHTML = `
+            <span class="text-slate-200 font-medium">${d.feature_name}</span>
+            <span class="text-rose-400 font-bold">${d.points_added} pts</span>
+          `;
+          driversContainer.appendChild(item);
+        });
+      }
+
+      // Protective
+      const protectiveContainer = document.getElementById('protectiveFactorsList');
+      protectiveContainer.innerHTML = '';
+      if (data.protective_factors.length === 0) {
+        protectiveContainer.innerHTML = '<p class="text-xs text-slate-500">No significant protective factors</p>';
+      } else {
+        data.protective_factors.forEach(p => {
+          const item = document.createElement('div');
+          item.className = 'p-2.5 bg-emerald-950/30 border border-emerald-900/40 rounded-lg flex justify-between items-center text-xs';
+          item.innerHTML = `
+            <span class="text-slate-200 font-medium">${p.feature_name}</span>
+            <span class="text-emerald-400 font-bold">${p.points_reduced} pts</span>
+          `;
+          protectiveContainer.appendChild(item);
+        });
+      }
+    }
+
+    // Initial Load
+    analyzeRisk();
+  </script>
+</body>
+</html>

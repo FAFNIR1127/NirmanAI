@@ -1,0 +1,109 @@
+{
+  "features": [
+    {
+      "name": "original_cost",
+      "type": "float",
+      "description": "Original Approved Cost (\u20b9 Crore)"
+    },
+    {
+      "name": "revised_cost",
+      "type": "float",
+      "description": "Revised Approved Cost (\u20b9 Crore)"
+    },
+    {
+      "name": "anticipated_cost",
+      "type": "float",
+      "description": "Anticipated Completion Cost (\u20b9 Crore)"
+    },
+    {
+      "name": "cumulative_expenditure",
+      "type": "float",
+      "description": "Cumulative Expenditure to Date (\u20b9 Crore)"
+    },
+    {
+      "name": "physical_progress",
+      "type": "float",
+      "description": "Physical Progress Percentage (0-100%)"
+    },
+    {
+      "name": "original_delay_months",
+      "type": "float",
+      "description": "Schedule Delay relative to Original DOC (Months)"
+    },
+    {
+      "name": "revised_delay_months",
+      "type": "float",
+      "description": "Schedule Delay relative to Revised DOC (Months)"
+    },
+    {
+      "name": "milestones_achieved",
+      "type": "float",
+      "description": "Milestones Achieved Count"
+    },
+    {
+      "name": "milestones_total",
+      "type": "float",
+      "description": "Total Scheduled Milestones Count"
+    },
+    {
+      "name": "months_elapsed",
+      "type": "float",
+      "description": "Months Elapsed since Project Approval"
+    },
+    {
+      "name": "months_originally_planned",
+      "type": "float",
+      "description": "Originally Planned Project Duration (Months)"
+    },
+    {
+      "name": "months_remaining",
+      "type": "float",
+      "description": "Months Remaining to Anticipated DOC"
+    },
+    {
+      "name": "cost_expansion_ratio",
+      "type": "float",
+      "description": "Anticipated Cost / Original Cost Ratio"
+    },
+    {
+      "name": "expenditure_ratio",
+      "type": "float",
+      "description": "Cumulative Expenditure / Anticipated Cost Ratio"
+    },
+    {
+      "name": "expenditure_progress_gap",
+      "type": "float",
+      "description": "Expenditure Ratio - Physical Progress Ratio Gap"
+    },
+    {
+      "name": "delay_months",
+      "type": "float",
+      "description": "Anticipated Delay Duration (Months)"
+    },
+    {
+      "name": "schedule_slippage_ratio",
+      "type": "float",
+      "description": "Delay Months / Originally Planned Duration Ratio"
+    },
+    {
+      "name": "milestone_rate",
+      "type": "float",
+      "description": "Milestones Achieved / Total Milestones Ratio"
+    },
+    {
+      "name": "progress_velocity",
+      "type": "float",
+      "description": "Monthly Rate of Physical Execution Progress (%/Month)"
+    },
+    {
+      "name": "agency_encoded",
+      "type": "int",
+      "description": "Implementing Agency Categorical Encoding"
+    },
+    {
+      "name": "state_encoded",
+      "type": "int",
+      "description": "State Location Categorical Encoding"
+    }
+  ]
+}

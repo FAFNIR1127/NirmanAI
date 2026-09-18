@@ -1,0 +1,794 @@
+from pathlib import Path
+import pymupdf
+import re
+import json
+
+
+PDF = Path("raw/2021-22/monthly/FR_APr_2021.pdf")
+OUTPUT = Path("processed/extracted/historical_2021_april.json")
+
+START_PAGE = 84
+END_PAGE = 176
+EXPECTED_PROJECTS = 1737
+
+CODE_RE = re.compile(r"\[([A-Za-z0-9]+)\]")
+SERIAL_RE = re.compile(r"^\d{1,4}$")
+DATE_RE = re.compile(r"^\d{2}/\d{4}$")
+NUMBER_RE = re.compile(r"^-?(?:\d[\d,]*(?:\.\d+)?|\.\d+)$")
+DELAY_RE = re.compile(r"^-?\d+\([OR]\)$")
+
+
+def clean_text(text):
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def parse_number(text):
+    text = text.strip()
+
+    if text in {"-", "", "—"}:
+        return None
+
+    try:
+        return float(text.replace(",", ""))
+    except ValueError:
+        return None
+
+
+def load_pages(doc):
+    pages = []
+
+    for page_no in range(START_PAGE, END_PAGE + 1):
+
+        page = doc[page_no - 1]
+        words = []
+
+        for w in page.get_text("words"):
+
+            x0, y0, x1, y1, text, block_no, line_no, word_no = w
+
+            words.append({
+                "x0": x0,
+                "y0": y0,
+                "x1": x1,
+                "y1": y1,
+                "text": text,
+                "block": block_no,
+                "line": line_no,
+                "word": word_no,
+            })
+
+        words.sort(key=lambda w: (w["y0"], w["x0"]))
+
+        pages.append({
+            "page": page_no,
+            "words": words
+        })
+
+    return pages
+
+
+def find_code_anchors(pages):
+
+    anchors = []
+
+    for page_data in pages:
+
+        page_no = page_data["page"]
+        words = page_data["words"]
+
+        for i, word in enumerate(words):
+
+            match = CODE_RE.search(word["text"])
+
+            if not match:
+                continue
+
+            code = match.group(1)
+
+            serial = None
+            serial_index = None
+
+            for j in range(i - 1, max(-1, i - 100), -1):
+
+                candidate = words[j]
+
+                if candidate["x0"] > 45:
+                    continue
+
+                if not SERIAL_RE.match(candidate["text"]):
+                    continue
+
+                if abs(candidate["y0"] - word["y0"]) > 70:
+                    continue
+
+                serial = int(candidate["text"])
+                serial_index = j
+                break
+
+            if serial is None:
+                continue
+
+            anchors.append({
+                "page": page_no,
+                "code": code,
+                "serial": serial,
+                "code_index": i,
+                "serial_index": serial_index,
+                "serial_y": words[serial_index]["y0"],
+                "code_y": word["y0"],
+            })
+
+    return anchors
+
+
+def get_record_words(page_words, start_y, end_y=None):
+
+    result = []
+
+    for word in page_words:
+
+        if word["y0"] < start_y - 1:
+            continue
+
+        if end_y is not None and word["y0"] >= end_y - 1:
+            continue
+
+        result.append(word)
+
+    return result
+
+
+def parse_identity(words, serial_y, code):
+
+    code_index = None
+
+    for i, word in enumerate(words):
+
+        if f"[{code}]" in word["text"]:
+            code_index = i
+            break
+
+    if code_index is None:
+        return "", None, None
+
+    code_word = words[code_index]
+
+    # ========================================================
+    # PROJECT NAME
+    #
+    # IMPORTANT:
+    # Do NOT restrict the name to x < 220.
+    # Long project names wrap and can extend into positions
+    # that previously caused 770 missing names.
+    # ========================================================
+
+    name_parts = []
+
+    for word in words:
+
+        if word["y0"] < serial_y - 1:
+            continue
+
+        if word["x0"] < 45:
+            continue
+
+        text = word["text"].strip()
+
+        if not text:
+            continue
+
+        if f"[{code}]" in text:
+
+            before_code = text.split(f"[{code}]", 1)[0].strip()
+
+            if before_code:
+                name_parts.append(before_code)
+
+            break
+
+        # Do not consume the numerical columns.
+        # Project text normally begins around x=46.
+        if word["x0"] < 220:
+            name_parts.append(text)
+
+    project_name = clean_text(" ".join(name_parts))
+
+    project_name = re.sub(r"\s*-\s*$", "", project_name)
+
+    # ========================================================
+    # AGENCY + STATE
+    # ========================================================
+
+    raw = code_word["text"]
+
+    if "]" not in raw:
+        return project_name, None, None
+
+    after_code = raw.split("]", 1)[1]
+
+    agency = None
+    state_parts = []
+
+    if "," in after_code:
+
+        agency_part, state_part = after_code.split(",", 1)
+
+        agency = agency_part.strip() or None
+
+        if state_part.strip():
+            state_parts.append(state_part.strip())
+
+    else:
+
+        agency = after_code.strip() or None
+
+    # Continue reading state on the same/wrapped line.
+    for word in words[code_index + 1:]:
+
+        if word["y0"] < code_word["y0"] - 1:
+            continue
+
+        if word["x0"] >= 220:
+            break
+
+        text = word["text"].strip()
+
+        if not text:
+            continue
+
+        if "," in text:
+
+            before = text.split(",", 1)[0].strip()
+
+            if before:
+                state_parts.append(before)
+
+            break
+
+        # Known metadata after state.
+        if text in {
+            "Central",
+            "Sector",
+            "Projects",
+            "PPP",
+            "(BOT)",
+            "EPC",
+        }:
+            continue
+
+        state_parts.append(text)
+
+    state = clean_text(" ".join(state_parts))
+
+    # Remove known trailing metadata.
+    for phrase in [
+        "Central Sector Projects",
+        "PPP (BOT)",
+        "PPP",
+        "EPC",
+    ]:
+        if phrase in state:
+            state = state.split(phrase)[0].strip()
+
+    state = state.strip(" ,")
+
+    # Remove accidental state suffix from project name.
+    if state and project_name:
+
+        state_tokens = state.split()
+
+        for n in range(
+            min(len(state_tokens), 8),
+            0,
+            -1
+        ):
+
+            suffix = " ".join(state_tokens[-n:])
+
+            if project_name.endswith(" " + suffix):
+
+                project_name = project_name[
+                    :-(len(suffix) + 1)
+                ].strip()
+
+                break
+
+    return project_name, agency, state
+
+
+def values_in_x_range(words, xmin, xmax):
+
+    values = [
+        w for w in words
+        if xmin <= w["x0"] < xmax
+    ]
+
+    values.sort(
+        key=lambda w: (w["y0"], w["x0"])
+    )
+
+    return values
+
+
+def dates_in_range(words, xmin, xmax):
+
+    result = []
+
+    for word in values_in_x_range(
+        words,
+        xmin,
+        xmax
+    ):
+
+        if DATE_RE.match(word["text"]):
+            result.append(word["text"])
+
+    return result
+
+
+def numbers_in_range(words, xmin, xmax):
+
+    result = []
+
+    for word in values_in_x_range(
+        words,
+        xmin,
+        xmax
+    ):
+
+        text = word["text"].strip()
+
+        if NUMBER_RE.match(text):
+
+            result.append(
+                parse_number(text)
+            )
+
+    return result
+
+
+def extract_record(page_words, start_y, end_y=None):
+
+    return get_record_words(
+        page_words,
+        start_y,
+        end_y
+    )
+
+
+def parse_record(page_data, anchor, next_anchor=None):
+
+    page_words = page_data["words"]
+
+    end_y = None
+
+    if (
+        next_anchor
+        and next_anchor["page"] == anchor["page"]
+    ):
+        end_y = next_anchor["serial_y"]
+
+    words = extract_record(
+        page_words,
+        anchor["serial_y"],
+        end_y
+    )
+
+    project_name, agency, state = parse_identity(
+        words,
+        anchor["serial_y"],
+        anchor["code"]
+    )
+
+    # --------------------------------------------------------
+    # Approval
+    # --------------------------------------------------------
+
+    approval = dates_in_range(
+        words,
+        220,
+        265
+    )
+
+    date_of_approval = (
+        approval[0]
+        if approval
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Original / Revised Cost
+    # --------------------------------------------------------
+
+    costs = numbers_in_range(
+        words,
+        265,
+        315
+    )
+
+    original_cost = (
+        costs[0]
+        if len(costs) >= 1
+        else None
+    )
+
+    revised_cost = (
+        costs[1]
+        if len(costs) >= 2
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Anticipated Cost
+    # --------------------------------------------------------
+
+    anticipated = numbers_in_range(
+        words,
+        315,
+        350
+    )
+
+    anticipated_cost = (
+        anticipated[0]
+        if anticipated
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Expenditure
+    # --------------------------------------------------------
+
+    expenditure = numbers_in_range(
+        words,
+        350,
+        405
+    )
+
+    cumulative_expenditure = (
+        expenditure[0]
+        if expenditure
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Commissioning dates
+    # --------------------------------------------------------
+
+    original_revised_dates = dates_in_range(
+        words,
+        405,
+        445
+    )
+
+    original_commissioning_date = (
+        original_revised_dates[0]
+        if len(original_revised_dates) >= 1
+        else None
+    )
+
+    revised_commissioning_date = (
+        original_revised_dates[1]
+        if len(original_revised_dates) >= 2
+        else None
+    )
+
+    anticipated_dates = dates_in_range(
+        words,
+        445,
+        490
+    )
+
+    anticipated_commissioning_date = (
+        anticipated_dates[0]
+        if anticipated_dates
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Delay
+    # --------------------------------------------------------
+
+    delays = []
+
+    for word in values_in_x_range(
+        words,
+        490,
+        540
+    ):
+
+        text = word["text"].strip()
+
+        if DELAY_RE.match(text):
+            delays.append(text)
+
+        elif NUMBER_RE.match(text):
+            delays.append(text)
+
+    original_delay = (
+        delays[0]
+        if len(delays) >= 1
+        else None
+    )
+
+    revised_delay = (
+        delays[1]
+        if len(delays) >= 2
+        else None
+    )
+
+    # --------------------------------------------------------
+    # Milestones
+    # --------------------------------------------------------
+
+    milestones = None
+
+    for word in values_in_x_range(
+        words,
+        540,
+        590
+    ):
+
+        if "/" in word["text"]:
+            milestones = word["text"].strip()
+            break
+
+    return {
+        "report_year": "2021-22",
+        "report_month": "April",
+        "report_date": "2021-04",
+        "source_page": anchor["page"],
+        "serial_no": anchor["serial"],
+        "project_code": anchor["code"],
+        "project_name": project_name,
+        "agency": agency,
+        "state": state,
+        "date_of_approval": date_of_approval,
+        "original_cost": original_cost,
+        "revised_cost": revised_cost,
+        "anticipated_cost": anticipated_cost,
+        "cumulative_expenditure": cumulative_expenditure,
+        "original_commissioning_date": original_commissioning_date,
+        "revised_commissioning_date": revised_commissioning_date,
+        "anticipated_commissioning_date": anticipated_commissioning_date,
+        "original_delay": original_delay,
+        "revised_delay": revised_delay,
+        "milestones": milestones,
+    }
+
+
+def validate(records):
+
+    print("\n" + "=" * 80)
+    print("2021-22 APRIL HISTORICAL EXTRACTION")
+    print("=" * 80)
+
+    print(
+        f"Expected records     : "
+        f"{EXPECTED_PROJECTS}"
+    )
+
+    print(
+        f"Extracted records    : "
+        f"{len(records)}"
+    )
+
+    codes = [
+        r["project_code"]
+        for r in records
+    ]
+
+    serials = [
+        r["serial_no"]
+        for r in records
+    ]
+
+    print(
+        f"Unique codes         : "
+        f"{len(set(codes))}"
+    )
+
+    print(
+        f"Duplicate codes      : "
+        f"{len(codes) - len(set(codes))}"
+    )
+
+    missing_names = [
+        r for r in records
+        if not r["project_name"]
+    ]
+
+    print(
+        f"Missing names        : "
+        f"{len(missing_names)}"
+    )
+
+    print(
+        f"Serial range         : "
+        f"{min(serials)} - {max(serials)}"
+    )
+
+    print(
+        f"Duplicate serials    : "
+        f"{len(serials) - len(set(serials))}"
+    )
+
+    expected_serials = set(
+        range(1, EXPECTED_PROJECTS + 1)
+    )
+
+    missing_serials = sorted(
+        expected_serials - set(serials)
+    )
+
+    print(
+        f"Missing serials      : "
+        f"{len(missing_serials)}"
+    )
+
+    if missing_serials:
+        print(
+            "Missing serial list  :",
+            missing_serials[:30]
+        )
+
+    # --------------------------------------------------------
+    # Key records
+    # --------------------------------------------------------
+
+    key_codes = [
+        "N02000010",
+        "N02000027",
+        "020100044",
+        "N02000028",
+        "N04000073",
+        "N24000928",
+        "N24000931",
+        "N30000047",
+        "N30000048",
+        "N30000049",
+        "N28000103",
+        "N40000003",
+    ]
+
+    print("\nKEY VALIDATION RECORDS")
+
+    for code in key_codes:
+
+        matches = [
+            r for r in records
+            if r["project_code"] == code
+        ]
+
+        if matches:
+
+            r = matches[0]
+
+            print(
+                f'{r["serial_no"]} | '
+                f'{r["project_code"]} | '
+                f'{r["project_name"]} | '
+                f'{r["agency"]} | '
+                f'{r["state"]} | '
+                f'OrigCost={r["original_cost"]} | '
+                f'RevisedCost={r["revised_cost"]} | '
+                f'AntCost={r["anticipated_cost"]} | '
+                f'Exp={r["cumulative_expenditure"]}'
+            )
+
+    print("\nFIRST 5")
+
+    for r in records[:5]:
+
+        print(
+            f'{r["serial_no"]} | '
+            f'{r["project_code"]} | '
+            f'{r["project_name"]} | '
+            f'{r["agency"]} | '
+            f'{r["state"]}'
+        )
+
+    print("\nLAST 5")
+
+    for r in records[-5:]:
+
+        print(
+            f'{r["serial_no"]} | '
+            f'{r["project_code"]} | '
+            f'{r["project_name"]} | '
+            f'{r["agency"]} | '
+            f'{r["state"]}'
+        )
+
+    print("\nMISSING NAMES")
+
+    for r in missing_names[:30]:
+
+        print(
+            f'{r["serial_no"]} | '
+            f'{r["project_code"]} | '
+            f'page {r["source_page"]}'
+        )
+
+
+def main():
+
+    if not PDF.exists():
+
+        print(
+            f"ERROR: File not found: {PDF}"
+        )
+
+        raise SystemExit(1)
+
+    print(f"Opening: {PDF}")
+
+    doc = pymupdf.open(PDF)
+
+    pages = load_pages(doc)
+
+    print(
+        f"Loaded pages "
+        f"{START_PAGE}–{END_PAGE}"
+    )
+
+    anchors = find_code_anchors(pages)
+
+    print(
+        f"Found code anchors: "
+        f"{len(anchors)}"
+    )
+
+    records = []
+
+    page_lookup = {
+        p["page"]: p
+        for p in pages
+    }
+
+    for i, anchor in enumerate(anchors):
+
+        page_data = page_lookup[
+            anchor["page"]
+        ]
+
+        next_anchor = (
+            anchors[i + 1]
+            if i + 1 < len(anchors)
+            else None
+        )
+
+        record = parse_record(
+            page_data,
+            anchor,
+            next_anchor
+        )
+
+        records.append(record)
+
+    doc.close()
+
+    validate(records)
+
+    OUTPUT.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with OUTPUT.open(
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            records,
+            f,
+            indent=2,
+            ensure_ascii=False
+        )
+
+    print("\nSaved:")
+    print(OUTPUT)
+
+
+if __name__ == "__main__":
+    main()
