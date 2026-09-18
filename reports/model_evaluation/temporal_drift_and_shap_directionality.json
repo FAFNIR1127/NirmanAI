@@ -1,0 +1,308 @@
+{
+  "feature_drift_table": [
+    {
+      "feature": "original_cost",
+      "psi": 0.0481,
+      "drift_category": "Stable (PSI<0.1)",
+      "ks_statistic": 0.0905,
+      "ks_p_value": 0.0,
+      "train_mean": 1339.0901,
+      "holdout_mean": 1568.3411
+    },
+    {
+      "feature": "anticipated_cost",
+      "psi": 0.0276,
+      "drift_category": "Stable (PSI<0.1)",
+      "ks_statistic": 0.0779,
+      "ks_p_value": 0.0,
+      "train_mean": 1556.2094,
+      "holdout_mean": 1970.2507
+    },
+    {
+      "feature": "cumulative_expenditure",
+      "psi": 0.1159,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.1378,
+      "ks_p_value": 0.0,
+      "train_mean": 753.9605,
+      "holdout_mean": 1145.6163
+    },
+    {
+      "feature": "physical_progress",
+      "psi": 0.0,
+      "drift_category": "Stable (PSI<0.1)",
+      "ks_statistic": 0.5852,
+      "ks_p_value": 0.0,
+      "train_mean": 0.0,
+      "holdout_mean": 38.3068
+    },
+    {
+      "feature": "delay_months",
+      "psi": 0.3807,
+      "drift_category": "SIGNIFICANT DRIFT",
+      "ks_statistic": 0.3088,
+      "ks_p_value": 0.0,
+      "train_mean": 27.3215,
+      "holdout_mean": 12.7925
+    },
+    {
+      "feature": "cost_expansion_ratio",
+      "psi": 0.1706,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.0962,
+      "ks_p_value": 0.0,
+      "train_mean": 1.5385,
+      "holdout_mean": 1.3741
+    },
+    {
+      "feature": "schedule_slippage_ratio",
+      "psi": 0.1199,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.154,
+      "ks_p_value": 0.0,
+      "train_mean": 1.1252,
+      "holdout_mean": 0.6286
+    },
+    {
+      "feature": "expenditure_ratio",
+      "psi": 0.1055,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.1318,
+      "ks_p_value": 0.0,
+      "train_mean": 0.4501,
+      "holdout_mean": 0.5315
+    },
+    {
+      "feature": "elapsed_ratio",
+      "psi": 0.3933,
+      "drift_category": "SIGNIFICANT DRIFT",
+      "ks_statistic": 0.2718,
+      "ks_p_value": 0.0,
+      "train_mean": 6.741,
+      "holdout_mean": 11.6485
+    },
+    {
+      "feature": "cost_overrun_velocity",
+      "psi": 0.1868,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.0955,
+      "ks_p_value": 0.0,
+      "train_mean": 5.8031,
+      "holdout_mean": 3.5474
+    },
+    {
+      "feature": "expenditure_burn_rate",
+      "psi": 0.1015,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.1155,
+      "ks_p_value": 0.0,
+      "train_mean": 23.7225,
+      "holdout_mean": 30.1465
+    },
+    {
+      "feature": "remaining_funds_ratio",
+      "psi": 0.1055,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.1318,
+      "ks_p_value": 0.0,
+      "train_mean": 0.5499,
+      "holdout_mean": 0.4685
+    },
+    {
+      "feature": "required_spend_rate_monthly",
+      "psi": 0.1292,
+      "drift_category": "Moderate Drift",
+      "ks_statistic": 0.1442,
+      "ks_p_value": 0.0,
+      "train_mean": 396.2996,
+      "holdout_mean": 582.9727
+    },
+    {
+      "feature": "required_progress_velocity",
+      "psi": 0.2654,
+      "drift_category": "SIGNIFICANT DRIFT",
+      "ks_statistic": 0.3756,
+      "ks_p_value": 0.0,
+      "train_mean": 74.1437,
+      "holdout_mean": 54.5138
+    },
+    {
+      "feature": "delta_expenditure",
+      "psi": 0.0843,
+      "drift_category": "Stable (PSI<0.1)",
+      "ks_statistic": 0.1107,
+      "ks_p_value": 0.0,
+      "train_mean": 119.8793,
+      "holdout_mean": 213.7577
+    },
+    {
+      "feature": "sector_historical_risk",
+      "psi": 0.0327,
+      "drift_category": "Stable (PSI<0.1)",
+      "ks_statistic": 0.076,
+      "ks_p_value": 0.0,
+      "train_mean": 0.3347,
+      "holdout_mean": 0.3283
+    }
+  ],
+  "sector_shifts": [
+    {
+      "sector": "Civil Aviation",
+      "train_pct": 0.34,
+      "holdout_pct": 0.77,
+      "diff": 0.43
+    },
+    {
+      "sector": "Coal & Mines",
+      "train_pct": 5.77,
+      "holdout_pct": 5.64,
+      "diff": -0.13
+    },
+    {
+      "sector": "Infrastructure & Development",
+      "train_pct": 3.8,
+      "holdout_pct": 2.0,
+      "diff": -1.8
+    },
+    {
+      "sector": "Petroleum & Natural Gas",
+      "train_pct": 4.88,
+      "holdout_pct": 2.72,
+      "diff": -2.15
+    },
+    {
+      "sector": "Power & Energy",
+      "train_pct": 2.54,
+      "holdout_pct": 2.69,
+      "diff": 0.15
+    },
+    {
+      "sector": "Railways",
+      "train_pct": 28.9,
+      "holdout_pct": 24.83,
+      "diff": -4.07
+    },
+    {
+      "sector": "Roads & Highways",
+      "train_pct": 53.12,
+      "holdout_pct": 60.71,
+      "diff": 7.59
+    },
+    {
+      "sector": "Shipping & Ports",
+      "train_pct": 0.11,
+      "holdout_pct": 0.08,
+      "diff": -0.03
+    },
+    {
+      "sector": "Steel & Heavy Industry",
+      "train_pct": 0.13,
+      "holdout_pct": 0.31,
+      "diff": 0.18
+    },
+    {
+      "sector": "Telecommunications",
+      "train_pct": 0.2,
+      "holdout_pct": 0.08,
+      "diff": -0.13
+    },
+    {
+      "sector": "Urban Infrastructure & Housing",
+      "train_pct": 0.21,
+      "holdout_pct": 0.19,
+      "diff": -0.02
+    }
+  ],
+  "shap_directionality_top15": [
+    {
+      "feature": "delta_expenditure",
+      "mean_abs_shap": 0.2396,
+      "spearman_rho": 0.6621,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "elapsed_ratio",
+      "mean_abs_shap": 0.1931,
+      "spearman_rho": -0.8068,
+      "directionality": "High value strongly decreases risk / protective (-)"
+    },
+    {
+      "feature": "required_progress_velocity",
+      "mean_abs_shap": 0.1442,
+      "spearman_rho": -0.3167,
+      "directionality": "High value strongly decreases risk / protective (-)"
+    },
+    {
+      "feature": "sector_historical_risk",
+      "mean_abs_shap": 0.1364,
+      "spearman_rho": 0.7878,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "revised_cost",
+      "mean_abs_shap": 0.1237,
+      "spearman_rho": 0.6952,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "months_elapsed",
+      "mean_abs_shap": 0.1176,
+      "spearman_rho": 0.8044,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "months_remaining",
+      "mean_abs_shap": 0.1112,
+      "spearman_rho": 0.261,
+      "directionality": "High value moderately increases risk (+)"
+    },
+    {
+      "feature": "months_originally_planned",
+      "mean_abs_shap": 0.0901,
+      "spearman_rho": 0.0316,
+      "directionality": "Nonlinear / Neutral"
+    },
+    {
+      "feature": "agency_encoded",
+      "mean_abs_shap": 0.075,
+      "spearman_rho": 0.6995,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "expenditure_ratio",
+      "mean_abs_shap": 0.0679,
+      "spearman_rho": 0.8617,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "expenditure_burn_rate",
+      "mean_abs_shap": 0.0652,
+      "spearman_rho": -0.7772,
+      "directionality": "High value strongly decreases risk / protective (-)"
+    },
+    {
+      "feature": "cumulative_expenditure",
+      "mean_abs_shap": 0.0354,
+      "spearman_rho": 0.8044,
+      "directionality": "High value strongly increases risk (+)"
+    },
+    {
+      "feature": "original_delay_months",
+      "mean_abs_shap": 0.035,
+      "spearman_rho": null,
+      "directionality": "Nonlinear / Neutral"
+    },
+    {
+      "feature": "required_spend_rate_monthly",
+      "mean_abs_shap": 0.0342,
+      "spearman_rho": -0.2956,
+      "directionality": "High value moderately decreases risk (-)"
+    },
+    {
+      "feature": "delay_months",
+      "mean_abs_shap": 0.0339,
+      "spearman_rho": -0.1351,
+      "directionality": "High value moderately decreases risk (-)"
+    }
+  ]
+}

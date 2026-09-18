@@ -27,7 +27,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GroupKFold
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    roc_auc_score, precision_recall_curve, auc, confusion_matrix, brier_score_loss
+    roc_auc_score, precision_recall_curve, auc, average_precision_score, confusion_matrix, brier_score_loss
 )
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, RandomOverSampler
@@ -131,8 +131,10 @@ def compute_metrics(y_true, y_pred_prob, threshold=0.5, ref_prevalence=0.3348):
     except Exception:
         roc = 0.5
         
-    p_curve, r_curve, _ = precision_recall_curve(y_true, y_pred_prob)
-    pr_auc = auc(r_curve, p_curve)
+    try:
+        pr_auc = average_precision_score(y_true, y_pred_prob)
+    except Exception:
+        pr_auc = ref_prevalence
     
     bs = brier_score_loss(y_true, y_pred_prob)
     # Climatology reference Brier score: p_i = ref_prevalence

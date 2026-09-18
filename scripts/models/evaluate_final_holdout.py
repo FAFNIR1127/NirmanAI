@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    roc_auc_score, precision_recall_curve, auc, roc_curve,
+    roc_auc_score, precision_recall_curve, auc, average_precision_score, roc_curve,
     confusion_matrix, brier_score_loss
 )
 import shap
@@ -101,7 +101,7 @@ def run_evaluation():
     # 2. Holdout Metrics
     roc = roc_auc_score(y_test, cal_probs)
     p_arr, r_arr, _ = precision_recall_curve(y_test, cal_probs)
-    pr_auc = auc(r_arr, p_arr)
+    pr_auc = average_precision_score(y_test, cal_probs)
     brier = brier_score_loss(y_test, cal_probs)
     brier_ref = np.mean((test_prevalence - y_test) ** 2)
     bss = 1.0 - (brier / brier_ref)

@@ -7,7 +7,7 @@
   "operational_threshold": 0.25,
   "metrics": {
     "roc_auc": 0.5208870829653829,
-    "pr_auc": 0.22188863318281127,
+    "pr_auc": 0.22352272068604698,
     "brier_score": 0.19267606801339665,
     "brier_skill_score": -0.16397369369391002,
     "operational": {
