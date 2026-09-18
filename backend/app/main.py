@@ -12,7 +12,7 @@ from backend.app.middleware.error_handler import (
     http_exception_handler, validation_exception_handler, generic_exception_handler
 )
 
-from backend.app.routes import health, projects, risk, analytics, documents, assistant, risk_intelligence
+from backend.app.routes import health, projects, risk, analytics, documents, assistant, risk_intelligence, ml
 
 # Initialize Structured Logging
 setup_logging()
@@ -48,6 +48,7 @@ app.include_router(analytics.router)
 app.include_router(documents.router)
 app.include_router(assistant.router)
 app.include_router(risk_intelligence.router)
+app.include_router(ml.router)
 
 from backend.app.services.cache_service import cache_service
 

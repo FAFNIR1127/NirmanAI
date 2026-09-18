@@ -1,0 +1,255 @@
+{
+  "evaluation_period": "2024-04 to 2025-04 (Locked Holdout)",
+  "sample_size": 1772,
+  "positive_count": 371,
+  "negative_count": 1401,
+  "test_prevalence": 0.20936794582392776,
+  "operational_threshold": 0.25,
+  "metrics": {
+    "roc_auc": 0.5208870829653829,
+    "pr_auc": 0.22188863318281127,
+    "brier_score": 0.19267606801339665,
+    "brier_skill_score": -0.16397369369391002,
+    "operational": {
+      "accuracy": 0.3718961625282167,
+      "precision": 0.2280058651026393,
+      "recall": 0.8382749326145552,
+      "f1": 0.3585014409221902,
+      "tn": 348,
+      "fp": 1053,
+      "fn": 60,
+      "tp": 311
+    },
+    "default_50": {
+      "precision": 0.275,
+      "recall": 0.0889487870619946,
+      "f1": 0.13441955193482688,
+      "tn": 1314,
+      "fp": 87,
+      "fn": 338,
+      "tp": 33
+    }
+  },
+  "shap_feature_importance_top15": [
+    {
+      "feature": "delta_expenditure",
+      "importance": 0.2396426945924759
+    },
+    {
+      "feature": "elapsed_ratio",
+      "importance": 0.19311444461345673
+    },
+    {
+      "feature": "required_progress_velocity",
+      "importance": 0.14420823752880096
+    },
+    {
+      "feature": "sector_historical_risk",
+      "importance": 0.13640817999839783
+    },
+    {
+      "feature": "revised_cost",
+      "importance": 0.12365437299013138
+    },
+    {
+      "feature": "months_elapsed",
+      "importance": 0.11763394623994827
+    },
+    {
+      "feature": "months_remaining",
+      "importance": 0.11120043694972992
+    },
+    {
+      "feature": "months_originally_planned",
+      "importance": 0.09013163298368454
+    },
+    {
+      "feature": "agency_encoded",
+      "importance": 0.07498877495527267
+    },
+    {
+      "feature": "expenditure_ratio",
+      "importance": 0.06787323951721191
+    },
+    {
+      "feature": "expenditure_burn_rate",
+      "importance": 0.06517867743968964
+    },
+    {
+      "feature": "cumulative_expenditure",
+      "importance": 0.035420503467321396
+    },
+    {
+      "feature": "original_delay_months",
+      "importance": 0.03502940759062767
+    },
+    {
+      "feature": "required_spend_rate_monthly",
+      "importance": 0.0342327319085598
+    },
+    {
+      "feature": "delay_months",
+      "importance": 0.0339411199092865
+    }
+  ],
+  "sector_breakdown": [
+    {
+      "sector": "Civil Aviation",
+      "total": 11,
+      "tp": 2,
+      "fp": 9,
+      "fn": 0,
+      "tn": 0,
+      "recall": 1.0,
+      "precision": 0.18181818181818182
+    },
+    {
+      "sector": "Coal & Mines",
+      "total": 122,
+      "tp": 5,
+      "fp": 98,
+      "fn": 0,
+      "tn": 19,
+      "recall": 1.0,
+      "precision": 0.04854368932038835
+    },
+    {
+      "sector": "Infrastructure & Development",
+      "total": 40,
+      "tp": 4,
+      "fp": 26,
+      "fn": 0,
+      "tn": 10,
+      "recall": 1.0,
+      "precision": 0.13333333333333333
+    },
+    {
+      "sector": "Petroleum & Natural Gas",
+      "total": 41,
+      "tp": 4,
+      "fp": 37,
+      "fn": 0,
+      "tn": 0,
+      "recall": 1.0,
+      "precision": 0.0975609756097561
+    },
+    {
+      "sector": "Power & Energy",
+      "total": 43,
+      "tp": 13,
+      "fp": 29,
+      "fn": 0,
+      "tn": 1,
+      "recall": 1.0,
+      "precision": 0.30952380952380953
+    },
+    {
+      "sector": "Railways",
+      "total": 468,
+      "tp": 110,
+      "fp": 326,
+      "fn": 7,
+      "tn": 25,
+      "recall": 0.9401709401709402,
+      "precision": 0.25229357798165136
+    },
+    {
+      "sector": "Roads & Highways",
+      "total": 1034,
+      "tp": 173,
+      "fp": 522,
+      "fn": 52,
+      "tn": 287,
+      "recall": 0.7688888888888888,
+      "precision": 0.2489208633093525
+    },
+    {
+      "sector": "Shipping & Ports",
+      "total": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 2,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "sector": "Steel & Heavy Industry",
+      "total": 7,
+      "tp": 0,
+      "fp": 4,
+      "fn": 0,
+      "tn": 3,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "sector": "Telecommunications",
+      "total": 1,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "sector": "Urban Infrastructure & Housing",
+      "total": 3,
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "tn": 1,
+      "recall": 0.0,
+      "precision": 0.0
+    }
+  ],
+  "cost_tier_breakdown": [
+    {
+      "cost_tier": "Small (<\u20b9500 Cr)",
+      "total": 736,
+      "tp": 85,
+      "fp": 466,
+      "fn": 18,
+      "tn": 167,
+      "recall": 0.8252427184466019,
+      "precision": 0.1542649727767695
+    },
+    {
+      "cost_tier": "Medium (\u20b9500-5000 Cr)",
+      "total": 940,
+      "tp": 215,
+      "fp": 518,
+      "fn": 41,
+      "tn": 166,
+      "recall": 0.83984375,
+      "precision": 0.2933151432469304
+    },
+    {
+      "cost_tier": "Mega (>\u20b95000 Cr)",
+      "total": 96,
+      "tp": 11,
+      "fp": 69,
+      "fn": 1,
+      "tn": 15,
+      "recall": 0.9166666666666666,
+      "precision": 0.1375
+    }
+  ],
+  "temporal_stability": [
+    {
+      "reporting_month": "2024-04",
+      "observations": 666,
+      "positive_rate": 0.13363363363363365,
+      "roc_auc": 0.6789087297723599,
+      "pr_auc": 0.2207042865351937
+    },
+    {
+      "reporting_month": "2025-04",
+      "observations": 1106,
+      "positive_rate": 0.2549728752260398,
+      "roc_auc": 0.5657556117881981,
+      "pr_auc": 0.28803727810459145
+    }
+  ]
+}

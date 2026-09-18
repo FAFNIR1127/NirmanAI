@@ -1,0 +1,17 @@
+{
+  "global_prior": 0.33482445438525144,
+  "smoothing_m": 10.0,
+  "sectors": {
+    "Civil Aviation": 0.5730319113808338,
+    "Coal & Mines": 0.2770794836487994,
+    "Infrastructure & Development": 0.30050423314235547,
+    "Petroleum & Natural Gas": 0.44116240881392965,
+    "Power & Energy": 0.5370175380748785,
+    "Railways": 0.39869663827415563,
+    "Roads & Highways": 0.2880338481043902,
+    "Shipping & Ports": 0.2557790908148538,
+    "Steel & Heavy Industry": 0.29712469688069526,
+    "Telecommunications": 0.3499164068501197,
+    "Urban Infrastructure & Housing": 0.29815159085187554
+  }
+}

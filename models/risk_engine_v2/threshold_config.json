@@ -1,0 +1,138 @@
+{
+  "operational_threshold": 0.25,
+  "f1_optimal_threshold": 0.35,
+  "youden_optimal_threshold": 0.35,
+  "cost_penalty_ratio": "5FN + 1FP",
+  "threshold_sweep_table": [
+    {
+      "threshold": 0.1,
+      "precision": 0.3378470797428532,
+      "recall": 1.0,
+      "f1": 0.5050608322257438,
+      "false_positives": 4841,
+      "false_negatives": 0,
+      "operational_cost": 4841,
+      "youden_j": 0.013450173221927875
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.36290085319211535,
+      "recall": 0.9987854251012146,
+      "f1": 0.5323694432455762,
+      "false_positives": 4331,
+      "false_negatives": 3,
+      "operational_cost": 4346,
+      "youden_j": 0.11616875503803958
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.3909294155221974,
+      "recall": 0.9910931174089069,
+      "f1": 0.5606962895098488,
+      "false_positives": 3814,
+      "false_negatives": 22,
+      "operational_cost": 3924,
+      "youden_j": 0.21383613758416675
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.47251389746757255,
+      "recall": 0.9291497975708503,
+      "f1": 0.6264501160092807,
+      "false_positives": 2562,
+      "false_negatives": 175,
+      "operational_cost": 3437,
+      "youden_j": 0.40703852795601436
+    },
+    {
+      "threshold": 0.28,
+      "precision": 0.5182724252491694,
+      "recall": 0.8842105263157894,
+      "f1": 0.6535008976660682,
+      "false_positives": 2030,
+      "false_negatives": 286,
+      "operational_cost": 3460,
+      "youden_j": 0.47051580448982655
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.5474947807933194,
+      "recall": 0.8493927125506073,
+      "f1": 0.6658203744842907,
+      "false_positives": 1734,
+      "false_negatives": 372,
+      "operational_cost": 3594,
+      "youden_j": 0.49601997971995726
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.6138421733505821,
+      "recall": 0.7684210526315789,
+      "f1": 0.6824883135562747,
+      "false_positives": 1194,
+      "false_negatives": 572,
+      "operational_cost": 4054,
+      "youden_j": 0.5250951916167022
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.6903640256959315,
+      "recall": 0.6526315789473685,
+      "f1": 0.6709677419354839,
+      "false_positives": 723,
+      "false_negatives": 858,
+      "operational_cost": 5013,
+      "youden_j": 0.5052910450162497
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.7836734693877551,
+      "recall": 0.46639676113360323,
+      "f1": 0.584771573604061,
+      "false_positives": 318,
+      "false_negatives": 1318,
+      "operational_cost": 6908,
+      "youden_j": 0.40159138106431447
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.8523809523809524,
+      "recall": 0.28987854251012146,
+      "f1": 0.4326283987915408,
+      "false_positives": 124,
+      "false_negatives": 1754,
+      "operational_cost": 8894,
+      "youden_j": 0.2646085200931661
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.8818897637795275,
+      "recall": 0.22672064777327935,
+      "f1": 0.3607085346215781,
+      "false_positives": 75,
+      "false_negatives": 1910,
+      "operational_cost": 9625,
+      "youden_j": 0.21143636002108862
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.9020408163265307,
+      "recall": 0.17894736842105263,
+      "f1": 0.29864864864864865,
+      "false_positives": 48,
+      "false_negatives": 2028,
+      "operational_cost": 10188,
+      "youden_j": 0.16916542425965056
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.937799043062201,
+      "recall": 0.07935222672064778,
+      "f1": 0.14632325494587534,
+      "false_positives": 13,
+      "false_negatives": 2274,
+      "operational_cost": 11383,
+      "youden_j": 0.07670295017693471
+    }
+  ]
+}
