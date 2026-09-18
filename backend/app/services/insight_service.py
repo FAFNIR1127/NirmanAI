@@ -54,22 +54,33 @@ class InsightService:
             cost_projects = df_cost.to_dict(orient="records")
 
         exec_kpis = get_executive_summary()
+        top_sectors = exec_kpis.get("top_sectors_by_cost_overrun", [])
+        top_sector_name = top_sectors[0]["sector"] if top_sectors else "infrastructure"
 
         return {
             "title": "Morning Infrastructure Surveillance Snapshot",
-            "date": "2026-09-18",
+            "date": pd.Timestamp.now().strftime("%Y-%m-%d"),
             "portfolio_summary": {
-                "total_projects": exec_kpis.get("total_projects", 3589),
-                "critical_projects": exec_kpis.get("critical_count", 208),
-                "high_projects": exec_kpis.get("high_count", 266),
-                "total_original_cost_crore": exec_kpis.get("total_original_cost_crore", 4417000)
+                "total_projects": exec_kpis.get("total_projects", exec_kpis.get("total_master_projects", 0)),
+                "live_projects_2026": exec_kpis.get("total_live_projects_2026", 0),
+                "critical_projects": exec_kpis.get("critical_risk_project_count", 0),
+                "high_projects": exec_kpis.get("high_risk_project_count", 0),
+                "moderate_projects": exec_kpis.get("moderate_risk_project_count", 0),
+                "low_projects": exec_kpis.get("low_risk_project_count", 0),
+                "total_original_cost_crore": exec_kpis.get("total_original_cost_crore", 0.0),
+                "total_anticipated_cost_crore": exec_kpis.get("total_anticipated_cost_crore", 0.0),
+                "total_cost_overrun_crore": exec_kpis.get("total_cost_overrun_crore", 0.0),
+                "overall_cost_overrun_percent": exec_kpis.get("overall_cost_overrun_percent", 0.0),
+                "avg_delay_months": exec_kpis.get("avg_delay_months", 0.0),
             },
             "top_critical_escalations": crit_projects,
             "top_cost_overruns": cost_projects,
+            "top_sectors_by_exposure": top_sectors[:5],
             "recommended_actions": [
-                "Review critical risk projects in Railways and MoRTH sectors.",
-                "Initiate ground evidence verification for top cost overrun projects.",
-                "Issue early warning advisory to high-risk project authorities."
+                f"Review critical risk projects in {top_sector_name} — highest national cost exposure.",
+                "Initiate ground evidence verification for top cost overrun projects listed above.",
+                f"Issue early warning advisory to all {exec_kpis.get('critical_risk_project_count', 0):,} Critical and {exec_kpis.get('high_risk_project_count', 0):,} High risk project authorities.",
+                f"Monitor {exec_kpis.get('total_live_projects_2026', 0):,} active 2026 projects for schedule adherence."
             ]
         }
 

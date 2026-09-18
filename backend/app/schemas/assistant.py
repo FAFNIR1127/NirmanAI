@@ -71,6 +71,7 @@ class AssistantChatRequest(BaseModel):
     message: Optional[str] = None
     query: Optional[str] = None
     session_id: Optional[str] = None
+    project_code: Optional[str] = None
 
 
 class AssistantChatResponse(CopilotResponse):

@@ -25,13 +25,12 @@ def get_executive_summary():
             "SELECT COUNT(DISTINCT project_code) FROM project_observations WHERE reporting_month >= '2025-07'"
         )).scalar()
         
-        # Use only projects with valid original_cost (from original MoSPI master list)
-        # New July 2026 projects have unreliable original_cost from PDF parsing
+        # Sum original_cost for all valid projects
         tot_orig = float(conn.execute(sqlalchemy.text(
-            "SELECT COALESCE(SUM(original_cost), 0) FROM projects WHERE original_cost IS NOT NULL AND original_cost < 100000"
+            "SELECT COALESCE(SUM(original_cost), 0) FROM projects WHERE original_cost IS NOT NULL"
         )).scalar() or 0.0)
         
-        # Latest anticipated cost per project
+        # Latest anticipated cost per project (most recent observation)
         sql_ant = """
             SELECT SUM(anticipated_cost) 
             FROM (
@@ -46,6 +45,7 @@ def get_executive_summary():
         
         cost_overrun_crore = max(0.0, tot_ant - tot_orig)
         overrun_pct = round((cost_overrun_crore / tot_orig) * 100.0, 2) if tot_orig > 0 else 0.0
+
 
         # Risk categories counts
         sql_risk = """

@@ -17,7 +17,11 @@ def chat_with_assistant(req: AssistantChatRequest):
         raise HTTPException(status_code=400, detail="Chat message cannot be empty.")
 
     try:
-        res = assistant_service.chat(message=msg, session_id=req.session_id)
+        res = assistant_service.chat(
+            message=msg,
+            session_id=req.session_id,
+            project_code=req.project_code
+        )
         res.response = res.answer
         return res
     except Exception as e:

@@ -62,8 +62,9 @@ def _gather_top_projects(limit: int = 10) -> List[Dict]:
 
 def _gather_risk_decomposition(project_code: str) -> Dict[str, Any]:
     try:
-        from backend.app.services import risk_decomposition_service
-        return risk_decomposition_service.get_risk_decomposition(project_code)
+        from backend.app.services.risk_decomposition_service import RiskDecompositionService
+        svc = RiskDecompositionService()
+        return svc.decompose_project_risk(project_code) or {}
     except Exception as e:
         print(f"[Assistant] risk_decomp error for {project_code}: {e}")
         return {}
@@ -102,13 +103,61 @@ def _gather_early_warnings() -> Dict[str, Any]:
 
 # ── Intent & Entity Extraction ────────────────────────────────────────────────
 
-def _extract_entities(query: str, session: Any) -> Dict[str, Any]:
+def _lookup_project_code_by_name(query: str) -> Optional[str]:
+    """Resolve project names mentioned in natural language query to project_code directly from DB."""
+    try:
+        from backend.app.services.analytics_service import get_db_engine
+        import sqlalchemy
+        engine = get_db_engine()
+        stop_words = {
+            "details", "project", "projects", "show", "what", "give", "about",
+            "risk", "cost", "the", "and", "for", "tell", "with", "overrun",
+            "status", "information", "info", "update", "latest", "please", "me"
+        }
+        cleaned = re.sub(r'[^\w\s-]', ' ', query)
+        tokens = [w.strip() for w in cleaned.split() if len(w.strip()) >= 4 and w.lower() not in stop_words]
+        if not tokens:
+            return None
+
+        with engine.connect() as conn:
+            # 1. Multi-token match
+            if len(tokens) >= 2:
+                conds = [f"LOWER(project_name) LIKE :w{i}" for i in range(len(tokens))]
+                params = {f"w{i}": f"%{tokens[i].lower()}%" for i in range(len(tokens))}
+                sql = "SELECT project_code FROM projects WHERE " + " AND ".join(conds) + " LIMIT 1"
+                row = conn.execute(sqlalchemy.text(sql), params).fetchone()
+                if row:
+                    return str(row[0])
+
+            # 2. Key significant token match (longest first)
+            sorted_tokens = sorted(tokens, key=len, reverse=True)
+            for token in sorted_tokens[:3]:
+                sql = "SELECT project_code FROM projects WHERE LOWER(project_name) LIKE :w ORDER BY LENGTH(project_name) ASC LIMIT 1"
+                row = conn.execute(sqlalchemy.text(sql), {"w": f"%{token.lower()}%"}).fetchone()
+                if row:
+                    return str(row[0])
+    except Exception as e:
+        print(f"[Assistant] Project name lookup error: {e}")
+    return None
+
+
+def _extract_entities(query: str, session: Any, explicit_project_code: Optional[str] = None) -> Dict[str, Any]:
     """Extract project codes, state names, and key entities from user query."""
     q = query.lower()
 
-    # Project code patterns: 220100262, N22000170, 020100044 etc.
+    # Project code resolution priority:
+    # 1. Explicitly passed project_code (from active drawer context)
+    # 2. Regex match in query (e.g. 220100133, N22000170)
+    # 3. Database lookup by project name
+    # 4. Session memory last_project_code
     codes = re.findall(r'\b([A-Z]?\d{7,10}|[A-Z]\d{6,9})\b', query.upper())
-    primary_code = codes[0] if codes else session.last_project_code
+    primary_code = explicit_project_code or (codes[0] if codes else None)
+
+    if not primary_code:
+        primary_code = _lookup_project_code_by_name(query)
+
+    if not primary_code:
+        primary_code = session.last_project_code
 
     states = ["maharashtra", "tamil nadu", "uttar pradesh", "gujarat", "bihar",
               "karnataka", "west bengal", "delhi", "rajasthan", "odisha",
@@ -141,6 +190,7 @@ def _extract_entities(query: str, session: Any) -> Dict[str, Any]:
         "is_rag_query": is_rag_query,
         "is_comparison": is_comparison,
     }
+
 
 
 # ── Evidence Gathering ────────────────────────────────────────────────────────
@@ -196,38 +246,55 @@ def _build_prompt(query: str, evidence: Dict[str, Any], history: List[Dict]) -> 
         history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in recent])
 
     # Format portfolio KPIs
-    kpi_text = f"""Portfolio KPIs:
-- Total Projects: {kpis.get('total_projects', kpis.get('total_master_projects', 'N/A')):,}
-- Live Projects (2026): {kpis.get('total_live_projects_2026', 'N/A'):,}
-- Total Original Cost: ₹{kpis.get('total_original_cost_crore', 0):,.2f} Crore
-- Total Anticipated Cost: ₹{kpis.get('total_anticipated_cost_crore', 0):,.2f} Crore  
+    kpi_text = f"""Portfolio KPIs (Latest Live Data — as of July 2026):
+- Total Master Projects in Database: {kpis.get('total_projects', kpis.get('total_master_projects', 'N/A')):,}
+- Live Projects with 2026 Reporting: {kpis.get('total_live_projects_2026', 'N/A'):,}
+- Total Original Sanctioned Cost: ₹{kpis.get('total_original_cost_crore', 0):,.2f} Crore
+- Total Anticipated Cost (Latest): ₹{kpis.get('total_anticipated_cost_crore', 0):,.2f} Crore
 - Total Cost Overrun: ₹{kpis.get('total_cost_overrun_crore', 0):,.2f} Crore ({kpis.get('overall_cost_overrun_percent', 0):.1f}%)
-- Critical Risk Projects: {kpis.get('critical_risk_project_count', 0)}
-- High Risk Projects: {kpis.get('high_risk_project_count', 0)}
-- Moderate Risk Projects: {kpis.get('moderate_risk_project_count', 0)}
-- Low Risk Projects: {kpis.get('low_risk_project_count', 0)}
+- Critical Risk Projects: {kpis.get('critical_risk_project_count', 0):,}
+- High Risk Projects: {kpis.get('high_risk_project_count', 0):,}
+- Moderate Risk Projects: {kpis.get('moderate_risk_project_count', 0):,}
+- Low Risk Projects: {kpis.get('low_risk_project_count', 0):,}
+- Avg Cost Expansion Ratio: {kpis.get('avg_cost_expansion', 0):.2f}x
+- Avg Schedule Slippage: {kpis.get('avg_delay_months', 0):.1f} months
 - Early Warning Threshold: T* >= 0.28 (XGBoost Risk Engine v1)""" if kpis else "Portfolio KPIs: unavailable."
 
-    # Format project details if present
+    # Format project details if present (GROUND TRUTH FROM RELATIONAL DB)
     proj_text = ""
     if proj:
         obs = proj.get("observations", [])
         latest_obs = obs[-1] if obs else {}
-        orig_cost = proj.get("original_cost", "N/A")
-        ant_cost = proj.get("latest_anticipated_cost", latest_obs.get("anticipated_cost", "N/A"))
-        overrun = (float(ant_cost) - float(orig_cost)) if (ant_cost not in ("N/A", None) and orig_cost not in ("N/A", None)) else None
-        proj_text = f"""Project Details ({proj.get('project_code')}):
-- Name: {proj.get('project_name')}
-- Agency: {proj.get('agency')}
-- State: {proj.get('state')}
-- Sector: {proj.get('sector')}
-- Approval Date: {proj.get('approval_date')}
-- Original Cost: ₹{orig_cost} Crore
-- Latest Anticipated Cost: ₹{ant_cost} Crore
-- Cost Overrun: ₹{overrun:,.2f} Crore ({(overrun/float(orig_cost)*100):.1f}%) """ if overrun is not None else f"- Cost Overrun: N/A"
-        if latest_obs:
-            proj_text += f"\n- Physical Progress: {latest_obs.get('physical_progress', 'N/A')}%"
-            proj_text += f"\n- Latest Reporting Month: {latest_obs.get('reporting_month', 'N/A')}"
+        orig_cost = proj.get("original_cost")
+        ant_cost = proj.get("latest_anticipated_cost", latest_obs.get("anticipated_cost", orig_cost))
+        
+        orig_f = float(orig_cost) if (orig_cost is not None and str(orig_cost) != "N/A") else None
+        ant_f = float(ant_cost) if (ant_cost is not None and str(ant_cost) != "N/A") else None
+        overrun = (ant_f - orig_f) if (ant_f is not None and orig_f is not None) else None
+        overrun_pct = ((overrun / orig_f) * 100.0) if (overrun is not None and orig_f and orig_f > 0) else 0.0
+        
+        delay_m = proj.get("latest_delay_months", latest_obs.get("delay_months"))
+        orig_doc = proj.get("latest_orig_doc", latest_obs.get("original_doc", "N/A"))
+        ant_doc = proj.get("latest_ant_doc", latest_obs.get("anticipated_doc", "N/A"))
+        prog = latest_obs.get("physical_progress", proj.get("physical_progress", "N/A"))
+        rep_m = latest_obs.get("reporting_month", "N/A")
+
+        proj_text = f"""=== LIVE DATABASE PROJECT DETAILS (GROUND TRUTH — MUST MATCH EXACTLY) ===
+- Project Code: {proj.get('project_code')}
+- Project Name: {proj.get('project_name')}
+- Implementing Agency: {proj.get('agency', 'N/A')}
+- State: {proj.get('state', 'N/A')}
+- Sector: {proj.get('sector', 'N/A')}
+- Approval Date: {proj.get('approval_date', 'N/A')}
+- Original Sanctioned Cost: ₹{orig_f:,.2f} Crore
+- Latest Anticipated Cost: ₹{ant_f:,.2f} Crore
+- Cumulative Cost Overrun: ₹{overrun:,.2f} Crore ({overrun_pct:+.1f}% Escalation)
+- Original Date of Completion: {orig_doc}
+- Latest Anticipated Date of Completion: {ant_doc}
+- Schedule Delay: {f"{delay_m:.1f} months" if delay_m is not None else "As per schedule"}
+- Physical Progress: {prog}%
+- Latest Reporting Snapshot: {rep_m}
+=========================================================================="""
 
     # Format SHAP risk decomposition
     shap_text = ""
@@ -267,7 +334,7 @@ def _build_prompt(query: str, evidence: Dict[str, Any], history: List[Dict]) -> 
     # Format RAG citations
     rag_text = ""
     if rag:
-        rag_text = "Historical PAIMANA Report Evidence:\n" + "\n".join([
+        rag_text = "Historical PAIMANA Report Excerpts (Use for historical audit context only — NOT current cost):\n" + "\n".join([
             f"  [{c['citation_id']}] {c['source_file']} (p.{c['page']}, {c['month']}): \"{c['content'][:300]}\""
             for c in rag
         ])
@@ -275,29 +342,38 @@ def _build_prompt(query: str, evidence: Dict[str, Any], history: List[Dict]) -> 
     # Build the full prompt
     data_sections = "\n\n".join(filter(None, [kpi_text, proj_text, shap_text, state_text, proj_list_text, compare_text, rag_text]))
 
-    prompt = f"""You are Nirman AI Copilot — an expert AI assistant for the Government of India's infrastructure project monitoring platform (MoSPI/PAIMANA). You have access to live PostgreSQL data, XGBoost ML risk scores, SHAP feature attributions, and a 331,206-chunk RAG corpus of official PAIMANA audit and monitoring reports.
+    prompt = f"""You are Nirman AI Copilot — an expert AI assistant for the Government of India's infrastructure project monitoring platform (MoSPI). You have access to live PostgreSQL database data, XGBoost ML risk scores (Risk Engine v1), SHAP driver attributions, and a 331,206-chunk RAG corpus of official PAIMANA audit and monitoring reports.
 
-You must answer the user's question accurately, intelligently, and completely using ONLY the grounded data below. Do not fabricate numbers. Cite relevant document evidence as [E1], [E2] etc. when referencing RAG chunks.
+CRITICAL RULES — YOU MUST FOLLOW THESE WITHOUT EXCEPTION:
+1. LIVE DATABASE PRIORITY: When answering about a specific project, the numbers in the "LIVE DATABASE PROJECT DETAILS" section are the ABSOLUTE SOURCE OF TRUTH. You MUST state:
+   - Original Sanctioned Cost: EXACTLY as shown in Live Database Project Details (e.g. ₹2,500.00 Crore)
+   - Latest Anticipated Cost: EXACTLY as shown in Live Database Project Details (e.g. ₹43,780.00 Crore)
+   - Cumulative Cost Overrun: EXACTLY as shown in Live Database Project Details (e.g. ₹41,280.00 Crore)
+   DO NOT substitute older cost or overrun figures found in historical document excerpts (citations [E1], [E2] etc. which may be from 2021, 2022, or 2023). Historical excerpts provide historical context; the LIVE DATABASE section reflects the current official status.
+2. Every number, figure, and statistic in your answer MUST come directly and verbatim from the "LIVE DATA & EVIDENCE" section below. Do NOT use your training memory for numbers.
+3. If the data says "Total Projects: 5,469" — say 5,469. If it says "Critical Risk: 775" — say 775. Do not round, guess, or recall older figures.
+4. Write in plain, friendly language that any government officer (even non-technical) can understand. Avoid jargon. Explain what numbers mean in plain terms.
+5. Cite evidence chunks as [E1], [E2] etc. when referencing qualitative historical document findings.
+6. Never say "I don't know" if the data is provided — synthesize a clear answer from the evidence.
+7. If the user's question is about a specific project, focus on that project's live data.
+8. At the end, suggest 3-4 natural follow-up questions the user might want to ask.
 
-Your response format:
-- Be conversational and analytical — answer like an expert briefing an officer
-- Use markdown: bold key numbers, bullet lists for findings, headers for long analyses
-- For project queries: give cost, delay, risk score, top SHAP drivers, and recommendations
-- For portfolio queries: give totals, risk distribution, top problem areas, trends
-- For state/sector queries: give regional breakdown, top risk projects, cost exposure
-- For document queries: quote relevant report excerpts with citation tags
-- Always end with 3-4 short follow-up action suggestions in a "**What would you like to explore next?**" section
+ANSWER FORMAT:
+- Start with a direct, clear 1-2 sentence summary answer stating the exact live numbers
+- Then give key project details and findings as bullet points
+- Bold all important numbers
+- End with a "**What would you like to explore next?**" section with 3-4 short suggestions
 
----CONVERSATION HISTORY---
-{history_text or "No prior conversation."}
+---CONVERSATION HISTORY (for context of earlier turns)---
+{history_text or "This is the start of the conversation."}
 
----LIVE DATA & EVIDENCE---
+---LIVE DATA & EVIDENCE (use ONLY these numbers in your answer)---
 {data_sections}
----END DATA---
+---END OF DATA---
 
 USER QUESTION: {query}
 
-Your answer (in markdown):"""
+Your answer (in clear, friendly markdown):"""
 
     return prompt
 
@@ -354,20 +430,31 @@ def _deterministic_fallback(query: str, evidence: Dict[str, Any], entities: Dict
         p_code = proj.get("project_code", "")
         obs = proj.get("observations", [])
         latest = obs[-1] if obs else {}
-        orig = proj.get("original_cost", "N/A")
-        ant = proj.get("latest_anticipated_cost", "N/A")
+        orig = proj.get("original_cost")
+        ant = proj.get("latest_anticipated_cost", latest.get("anticipated_cost", orig))
+        orig_f = float(orig) if (orig is not None and str(orig) not in ("N/A", "None")) else None
+        ant_f = float(ant) if (ant is not None and str(ant) not in ("N/A", "None")) else None
+        overrun = (ant_f - orig_f) if (ant_f is not None and orig_f is not None) else 0.0
+        overrun_pct = ((overrun / orig_f) * 100.0) if (overrun and orig_f and orig_f > 0) else 0.0
+        delay_m = proj.get("latest_delay_months", latest.get("delay_months"))
+        orig_doc = proj.get("latest_orig_doc", latest.get("original_doc", "N/A"))
+        ant_doc = proj.get("latest_ant_doc", latest.get("anticipated_doc", "N/A"))
+        prog = latest.get("physical_progress", proj.get("physical_progress", "N/A"))
+
         lines = [
-            f"### Project Brief: {proj.get('project_name', p_code)}",
-            f"- **Code**: {p_code} | **Agency**: {proj.get('agency')} | **State**: {proj.get('state')}",
-            f"- **Original Cost**: ₹{orig} Cr | **Latest Anticipated**: ₹{ant} Cr",
+            f"### Project Details: {proj.get('project_name', p_code)}",
+            f"- **Project Code**: `{p_code}` | **Nodal Agency**: {proj.get('agency', 'N/A')} | **State**: {proj.get('state', 'N/A')}",
+            f"- **Original Sanctioned Cost**: ₹{orig_f:,.2f} Crore" if orig_f is not None else "- **Original Cost**: N/A",
+            f"- **Latest Anticipated Cost**: ₹{ant_f:,.2f} Crore" if ant_f is not None else "- **Latest Anticipated Cost**: N/A",
+            f"- **Cumulative Cost Overrun**: ₹{overrun:,.2f} Crore ({overrun_pct:+.1f}% Escalation)" if overrun > 0 else "- **Cost Status**: Within Sanctioned Budget",
+            f"- **Completion Timeline**: Target {orig_doc} → Anticipated {ant_doc} ({f'{delay_m:.0f} months delay' if delay_m else 'On schedule'})",
+            f"- **Physical Progress**: {prog}%",
         ]
-        if latest:
-            lines.append(f"- **Physical Progress**: {latest.get('physical_progress', 'N/A')}% | **Reporting Month**: {latest.get('reporting_month', 'N/A')}")
         if rag:
-            lines.append("\n**Document Evidence:**")
+            lines.append("\n**Historical PAIMANA Report Citations:**")
             for c in rag[:3]:
                 lines.append(f"> [{c['citation_id']}] {c['source_file']} (p.{c['page']}): \"{c['content'][:200]}...\"")
-        lines.append("\n**What would you like to explore next?**\n- Risk drivers analysis\n- Compare with similar projects\n- Show recommendations\n- Historical cost trend")
+        lines.append("\n**What would you like to explore next?**\n- Risk drivers breakdown (SHAP)\n- Compare with similar sector projects\n- View official mitigation actions\n- Historical cost progression")
         return "\n".join(lines)
 
     if state_dig:
@@ -383,27 +470,33 @@ def _deterministic_fallback(query: str, evidence: Dict[str, Any], entities: Dict
         lines.append("\n**What would you like to explore next?**\n- Highest-risk project in this state\n- Cost overrun breakdown\n- Compare with another state")
         return "\n".join(lines)
 
-    crit = kpis.get("critical_risk_project_count", 208)
-    high = kpis.get("high_risk_project_count", 266)
-    tot = kpis.get("total_projects", 3589)
-    cost = kpis.get("total_original_cost_crore", 4417083.86)
-    ant_cost = kpis.get("total_anticipated_cost_crore", 14694951.08)
-    overrun = kpis.get("total_cost_overrun_crore", 10277867.22)
+    # --- ALWAYS use live DB values, never hardcoded stale numbers ---
+    crit = kpis.get("critical_risk_project_count", 0)
+    high = kpis.get("high_risk_project_count", 0)
+    mod  = kpis.get("moderate_risk_project_count", 0)
+    low  = kpis.get("low_risk_project_count", 0)
+    tot  = kpis.get("total_projects", kpis.get("total_master_projects", 0))
+    live = kpis.get("total_live_projects_2026", 0)
+    cost = kpis.get("total_original_cost_crore", 0)
+    ant_cost = kpis.get("total_anticipated_cost_crore", 0)
+    overrun  = kpis.get("total_cost_overrun_crore", 0)
+    overrun_pct = kpis.get("overall_cost_overrun_percent", 0)
 
     lines = [
-        f"### Nirman Portfolio Overview",
+        "### Nirman Portfolio — Latest Data Snapshot",
         f"- **Total Projects Monitored**: {tot:,}",
+        f"- **Live Projects (2026 data)**: {live:,}",
         f"- **Original Sanctioned Cost**: ₹{cost:,.2f} Crore",
         f"- **Latest Anticipated Cost**: ₹{ant_cost:,.2f} Crore",
-        f"- **Total Cost Overrun**: ₹{overrun:,.2f} Crore ({(overrun/cost*100):.1f}%)",
-        f"\n**Risk Distribution:**",
-        f"- 🔴 Critical: **{crit}** projects",
-        f"- 🟠 High: **{high}** projects",
-        f"- 🟡 Moderate: **{kpis.get('moderate_risk_project_count', 1849)}** projects",
-        f"- 🟢 Low: **{kpis.get('low_risk_project_count', 1266)}** projects",
+        f"- **Total Cost Overrun**: ₹{overrun:,.2f} Crore ({overrun_pct:.1f}%)",
+        f"\n**Risk Distribution (XGBoost Risk Engine v1):**",
+        f"- 🔴 Critical: **{crit:,}** projects",
+        f"- 🟠 High:     **{high:,}** projects",
+        f"- 🟡 Moderate: **{mod:,}** projects",
+        f"- 🟢 Low:      **{low:,}** projects",
     ]
     if top_proj:
-        lines.append("\n**Top Highest-Risk Projects:**")
+        lines.append("\n**Top Highest-Risk Projects (Latest):**")
         for p in top_proj[:5]:
             lines.append(f"  - {p.get('project_code')} | {p.get('project_name','')} | {p.get('state','')} | {p.get('risk_category','')} ({p.get('risk_score',0):.0f})")
     if rag:
@@ -412,6 +505,7 @@ def _deterministic_fallback(query: str, evidence: Dict[str, Any], entities: Dict
             lines.append(f"> [{c['citation_id']}] {c['source_file']} (p.{c['page']}): \"{c['content'][:180]}...\"")
     lines.append("\n**What would you like to explore next?**\n- Show highest-risk projects in detail\n- Analyse Maharashtra infrastructure\n- Break down by sector and agency\n- Examine cost and schedule exposure")
     return "\n".join(lines)
+
 
 
 # ── CopilotResponse Builder ───────────────────────────────────────────────────
@@ -431,13 +525,31 @@ def _build_copilot_response(answer_text: str, evidence: Dict[str, Any], session_
         for c in rag
     ]
 
+    proj = evidence.get("project_details")
     kpis = evidence.get("portfolio_kpis", {})
-    numbers = [
-        NumberCallout(label="Total Projects", value=f"{kpis.get('total_projects', 3589):,}", status="info"),
-        NumberCallout(label="Critical Risk", value=str(kpis.get("critical_risk_project_count", 208)), status="critical"),
-        NumberCallout(label="High Risk", value=str(kpis.get("high_risk_project_count", 266)), status="warning"),
-        NumberCallout(label="Cost Overrun", value=f"₹{kpis.get('total_cost_overrun_crore', 10277867):,.0f} Cr", status="warning"),
-    ] if kpis else []
+
+    if proj:
+        orig = proj.get("original_cost")
+        ant = proj.get("latest_anticipated_cost", orig)
+        orig_f = float(orig) if (orig is not None and str(orig) not in ("N/A", "None")) else None
+        ant_f = float(ant) if (ant is not None and str(ant) not in ("N/A", "None")) else None
+        overrun = (ant_f - orig_f) if (ant_f is not None and orig_f is not None) else 0.0
+        overrun_pct = ((overrun / orig_f) * 100.0) if (overrun and orig_f and orig_f > 0) else 0.0
+        numbers = [
+            NumberCallout(label="Original Cost",       value=f"₹{orig_f:,.0f} Cr" if orig_f is not None else "N/A", status="info"),
+            NumberCallout(label="Latest Anticipated",  value=f"₹{ant_f:,.0f} Cr" if ant_f is not None else "N/A", status="warning"),
+            NumberCallout(label="Cost Overrun",        value=f"₹{overrun:,.0f} Cr" + (f" ({overrun_pct:+.1f}%)" if overrun > 0 else ""), status="critical" if overrun > 0 else "normal"),
+            NumberCallout(label="Escalation Status",   value=f"{overrun_pct:+.1f}% Overrun" if overrun > 0 else "On Track", status="critical" if overrun > 0 else "normal"),
+        ]
+    elif kpis:
+        numbers = [
+            NumberCallout(label="Total Projects",  value=f"{kpis.get('total_projects', kpis.get('total_master_projects', 0)):,}", status="info"),
+            NumberCallout(label="Critical Risk",   value=f"{kpis.get('critical_risk_project_count', 0):,}", status="critical"),
+            NumberCallout(label="High Risk",       value=f"{kpis.get('high_risk_project_count', 0):,}", status="warning"),
+            NumberCallout(label="Cost Overrun",    value=f"₹{kpis.get('total_cost_overrun_crore', 0):,.0f} Cr", status="warning"),
+        ]
+    else:
+        numbers = []
 
     # Extract follow-up actions from generated text
     next_actions = []
@@ -478,12 +590,12 @@ class AssistantService:
     def __init__(self):
         self.context_mgr = ConversationContextManager()
 
-    def chat(self, message: str, session_id: Optional[str] = None) -> CopilotResponse:
+    def chat(self, message: str, session_id: Optional[str] = None, project_code: Optional[str] = None) -> CopilotResponse:
         sid = session_id or str(uuid.uuid4())
         session = self.context_mgr.get_session(sid)
 
-        # 1. Extract entities and intent signals
-        entities = _extract_entities(message, session)
+        # 1. Extract entities and intent signals (with explicit UI project_code priority)
+        entities = _extract_entities(message, session, explicit_project_code=project_code)
 
         # 2. Gather all relevant live data + RAG evidence
         evidence = _build_evidence_context(message, entities)

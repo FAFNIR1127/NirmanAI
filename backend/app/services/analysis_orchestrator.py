@@ -67,11 +67,18 @@ class AnalysisOrchestrator:
                 if cap == "portfolio_kpis":
                     kpis = get_executive_summary()
                     package.raw_results["portfolio_kpis"] = kpis
-                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_projects", value=kpis.get("total_projects", 3589), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="live_projects_2026", value=kpis.get("total_live_projects_2026", 1124), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_original_cost", value=kpis.get("total_original_cost_crore", 4417083.86), unit="crore", source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="critical_risk_projects", value=kpis.get("critical_risk_project_count", 208), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="high_risk_projects", value=kpis.get("high_risk_project_count", 266), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_projects",         value=kpis.get("total_projects", kpis.get("total_master_projects", 0)), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="live_projects_2026",     value=kpis.get("total_live_projects_2026", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_original_cost",    value=kpis.get("total_original_cost_crore", 0.0), unit="crore", source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_anticipated_cost", value=kpis.get("total_anticipated_cost_crore", 0.0), unit="crore", source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="total_cost_overrun",     value=kpis.get("total_cost_overrun_crore", 0.0), unit="crore", source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="cost_overrun_pct",       value=kpis.get("overall_cost_overrun_percent", 0.0), unit="%", source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="critical_risk_projects", value=kpis.get("critical_risk_project_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="high_risk_projects",     value=kpis.get("high_risk_project_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="moderate_risk_projects", value=kpis.get("moderate_risk_project_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="low_risk_projects",      value=kpis.get("low_risk_project_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="avg_delay_months",      value=kpis.get("avg_delay_months", 0.0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject="portfolio", metric="avg_cost_expansion",    value=kpis.get("avg_cost_expansion", 0.0), source_capability=cap))
 
                 elif cap == "filter_projects":
                     state = params.get("state")
@@ -94,10 +101,10 @@ class AnalysisOrchestrator:
                     from backend.app.services.insight_service import InsightService
                     digest = InsightService.get_state_digest(st_name)
                     package.raw_results[f"state_stats_{st_name}"] = digest
-                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="total_projects", value=digest.get("total_projects", 340), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="critical_count", value=digest.get("critical_count", 28), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="high_count", value=digest.get("high_count", 45), source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="total_outlay_crore", value=digest.get("total_outlay_crore", 245000.0), unit="crore", source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="total_projects",    value=digest.get("total_projects", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="critical_count",    value=digest.get("critical_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="high_count",        value=digest.get("high_count", 0), source_capability=cap))
+                    package.data_claims.append(DataClaim(category="kpi", subject=st_name, metric="total_outlay_crore",value=digest.get("total_outlay_crore", 0.0), unit="crore", source_capability=cap))
                     for p in digest.get("top_risk_projects", [])[:3]:
                         code = p.get("project_code")
                         if code and code not in package.projects_analyzed:
@@ -106,8 +113,24 @@ class AnalysisOrchestrator:
                 elif cap == "agency_stats":
                     kpis = get_executive_summary()
                     package.raw_results["agency_stats"] = kpis
-                    package.data_claims.append(DataClaim(category="kpi", subject="Railways", metric="cost_overrun", value=3450000, unit="crore", source_capability=cap))
-                    package.data_claims.append(DataClaim(category="kpi", subject="Road Transport & Highways", metric="cost_overrun", value=2890000, unit="crore", source_capability=cap))
+                    # Use live sector breakdown — never hardcoded
+                    top_sectors = kpis.get("top_sectors_by_cost_overrun", [])
+                    for sector_row in top_sectors:
+                        package.data_claims.append(DataClaim(
+                            category="kpi",
+                            subject=sector_row.get("sector", "Unknown"),
+                            metric="cost_overrun",
+                            value=sector_row.get("overrun_cr", 0.0),
+                            unit="crore",
+                            source_capability=cap
+                        ))
+                        package.data_claims.append(DataClaim(
+                            category="kpi",
+                            subject=sector_row.get("sector", "Unknown"),
+                            metric="project_count",
+                            value=sector_row.get("project_count", 0),
+                            source_capability=cap
+                        ))
 
                 elif cap == "get_project":
                     p_code = params.get("project_code")

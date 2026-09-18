@@ -147,31 +147,32 @@ Respond with ONLY valid JSON:
         # Deterministic Rule-based Insight Generator tailored to each response mode
         if package.response_mode == "highest_risk":
             crit_claim = next((c for c in package.data_claims if c.metric == "critical_risk_projects"), None)
-            crit_cnt = crit_claim.value if crit_claim else 208
+            crit_cnt = crit_claim.value if crit_claim else 0
             p_codes = package.projects_analyzed[:3]
 
-            answer = f"XGBoost Risk Engine v1 currently classifies {crit_cnt} infrastructure projects under Critical risk surveillance status across the portfolio."
+            codes_str = ', '.join(p_codes) if p_codes else "the projects listed above"
+            answer = f"The XGBoost Risk Engine v1 currently classifies **{crit_cnt:,}** infrastructure projects as Critical risk across the portfolio."
             findings = [
-                f"Highest-risk projects identified include codes {', '.join(p_codes) if p_codes else '220100262, N22000143, N22000170'} with risk index scores exceeding 85.0.",
-                "Primary risk drivers across critical projects: schedule slippage exceeding 24 months and expenditure gaps above 25%.",
-                "All critical projects cross predictive risk threshold T* >= 0.28, requiring ground evidence verification."
+                f"Highest-risk projects identified: {codes_str} — these have crossed the critical threshold T* >= 0.28.",
+                "Primary risk drivers: schedule slippage exceeding 24 months and expenditure gaps above 25%.",
+                "All critical projects require immediate ground evidence verification and escalation."
             ]
             actions = [
-                f"Why is project {p_codes[0] if p_codes else '220100262'} high risk?",
-                "Analyse main risk drivers across Maharashtra",
-                "Break down risk by sector and agency",
+                f"Show risk breakdown for project {p_codes[0] if p_codes else 'top critical project'}",
+                "Analyse risk drivers by state",
+                "Break down critical projects by sector",
                 "Examine cost and schedule exposure"
             ]
             return answer, findings, actions
 
         elif package.response_mode == "state_analysis":
             st_claim = next((c for c in package.data_claims if c.subject != "portfolio" and c.metric in ("total_projects", "critical_count")), None)
-            st_name = st_claim.subject if st_claim else "Maharashtra"
-            st_tot = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "total_projects"), 340)
-            st_crit = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "critical_count"), 28)
-            st_cost = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "total_outlay_crore"), 245000.0)
+            st_name = st_claim.subject if st_claim else "the selected state"
+            st_tot  = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "total_projects"), 0)
+            st_crit = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "critical_count"), 0)
+            st_cost = next((c.value for c in package.data_claims if c.subject == st_name and c.metric == "total_outlay_crore"), 0.0)
 
-            answer = f"In {st_name}, Nirman is tracking {st_tot} infrastructure projects with a combined sanctioned allocation of ₹{st_cost:,.2f} crore."
+            answer = f"In **{st_name}**, Nirman is tracking **{st_tot:,}** infrastructure projects with a combined sanctioned allocation of ₹**{st_cost:,.2f}** crore."
             findings = [
                 f"{st_name} Risk Breakdown: {st_crit} Critical risk projects and high concentration in transport and urban infrastructure.",
                 f"Top monitored projects in {st_name}: {', '.join(package.projects_analyzed[:3]) if package.projects_analyzed else 'regional corridors'}.",
@@ -186,32 +187,53 @@ Respond with ONLY valid JSON:
             return answer, findings, actions
 
         elif package.response_mode == "agency_breakdown":
-            answer = "Sectoral risk analysis reveals Railways and Road Transport & Highways (NHAI/MoRTH) account for over 60% of portfolio cost overruns."
-            findings = [
-                "Railways: ₹34.50 lakh crore cost overrun across 520 projects (highest cumulative overrun).",
-                "Road Transport & Highways: ₹28.90 lakh crore cost overrun across 890 projects.",
-                "Petroleum & Power: Combined ₹25.70 lakh crore exposure across 550 projects.",
-                "Primary agency delays stem from land acquisition, environmental clearances, and contractor execution slippage."
-            ]
+            # Pull live sector data from DataClaims populated by agency_stats capability
+            sector_claims = [c for c in package.data_claims if c.metric == "cost_overrun" and c.subject != "portfolio"]
+            if sector_claims:
+                sector_lines = [f"- **{c.subject}**: ₹{c.value:,.0f} crore cost overrun" for c in sorted(sector_claims, key=lambda x: (x.value or 0), reverse=True)[:4]]
+                top_sector = sector_claims[0].subject
+                answer = f"Sectoral cost overrun analysis (live data): **{top_sector}** is the highest-exposure sector in the portfolio."
+                findings = sector_lines + [
+                    "Primary agency delays stem from land acquisition, environmental clearances, and contractor execution slippage."
+                ]
+            else:
+                answer = "Sectoral risk analysis reveals the Roads & Highways and Railways sectors account for the largest portfolio cost overruns."
+                findings = [
+                    "See the Portfolio KPIs panel for live sector-wise overrun breakdown.",
+                    "Primary delays stem from land acquisition, environmental clearances, and contractor slippage."
+                ]
             actions = [
-                "Show highest-risk projects in Railways",
-                "Analyse main risk drivers across Maharashtra",
-                "Examine cost and schedule exposure",
-                "Summarize portfolio overruns"
+                "Show highest-risk projects by sector",
+                "Analyse Railways cost overrun projects",
+                "Examine Roads & Highways risk exposure",
+                "Summarize portfolio overruns by state"
             ]
             return answer, findings, actions
 
         elif package.response_mode == "cost_exposure":
-            answer = "Nirman tracks ₹102.78 lakh crore in total cost overrun exposure across the 3,589 monitored infrastructure projects."
+            # Pull live cost data from DataClaims
+            cost_claim    = next((c for c in package.data_claims if c.metric == "total_original_cost"), None)
+            ant_claim     = next((c for c in package.data_claims if c.metric == "total_anticipated_cost"), None)
+            overrun_claim = next((c for c in package.data_claims if c.metric == "total_cost_overrun"), None)
+            pct_claim     = next((c for c in package.data_claims if c.metric == "cost_overrun_pct"), None)
+            delay_claim   = next((c for c in package.data_claims if c.metric == "avg_delay_months"), None)
+
+            orig    = cost_claim.value    if cost_claim    else 0.0
+            ant     = ant_claim.value     if ant_claim     else 0.0
+            overrun = overrun_claim.value if overrun_claim else 0.0
+            pct     = pct_claim.value     if pct_claim     else 0.0
+            delay   = delay_claim.value   if delay_claim   else 0.0
+
+            answer = f"Total portfolio cost overrun stands at ₹**{overrun:,.0f}** crore — a **{pct:.1f}%** increase over original sanctioned cost (latest data)."
             findings = [
-                "Original sanctioned allocation: ₹44.17 lakh crore vs Latest anticipated cost: ₹146.95 lakh crore (232.7% cost expansion).",
-                "Average schedule delay across delayed projects: 22.0 months.",
-                "Projects with > ₹500 crore overrun constitute 72% of total financial slippage."
+                f"Original sanctioned cost: ₹**{orig:,.0f}** crore → Latest anticipated cost: ₹**{ant:,.0f}** crore",
+                f"Average schedule delay across monitored projects: **{delay:.1f} months**",
+                "Projects with >₹500 crore individual overrun are flagged for immediate ministerial review."
             ]
             actions = [
-                "Show highest-risk projects with top cost overrun",
-                "Analyse main risk drivers across Maharashtra",
-                "Break down risk by sector and agency",
+                "Show top projects by cost overrun",
+                "Analyse cost exposure by sector",
+                "Show state-wise cost overrun breakdown",
                 "What did PAIMANA reports say about cost overruns?"
             ]
             return answer, findings, actions
@@ -259,23 +281,37 @@ Respond with ONLY valid JSON:
             return answer, findings, actions
 
         # Executive / Portfolio Overview default
-        kpi_claim = next((c for c in package.data_claims if c.metric == "total_projects"), None)
-        tot = kpi_claim.value if kpi_claim else 3589
+        kpi_claim  = next((c for c in package.data_claims if c.metric == "total_projects"), None)
         crit_claim = next((c for c in package.data_claims if c.metric == "critical_risk_projects"), None)
-        crit = crit_claim.value if crit_claim else 208
         high_claim = next((c for c in package.data_claims if c.metric == "high_risk_projects"), None)
-        high = high_claim.value if high_claim else 266
+        mod_claim  = next((c for c in package.data_claims if c.metric == "moderate_risk_projects"), None)
+        low_claim  = next((c for c in package.data_claims if c.metric == "low_risk_projects"), None)
+        overrun_claim = next((c for c in package.data_claims if c.metric == "total_cost_overrun"), None)
+        cost_claim    = next((c for c in package.data_claims if c.metric == "total_original_cost"), None)
 
-        answer = f"Nirman is currently monitoring {tot:,} infrastructure projects. {crit:,} projects are currently classified as Critical risk by XGBoost Risk Engine v1."
+        tot     = kpi_claim.value  if kpi_claim  else 0
+        crit    = crit_claim.value if crit_claim else 0
+        high    = high_claim.value if high_claim else 0
+        mod     = mod_claim.value  if mod_claim  else 0
+        low     = low_claim.value  if low_claim  else 0
+        overrun = overrun_claim.value if overrun_claim else 0.0
+        cost    = cost_claim.value    if cost_claim    else 0.0
+
+        answer = (
+            f"As of the latest reporting (July 2026), Nirman is monitoring **{tot:,}** infrastructure projects. "
+            f"**{crit:,}** are flagged as Critical risk and **{high:,}** as High risk by the XGBoost Risk Engine."
+        )
         findings = [
-            f"Portfolio total recorded cost is approximately ₹44.17 lakh crore across 3,589 projects.",
-            f"Risk distribution: {crit} Critical, {high} High, 1,849 Moderate, and 1,266 Low risk projects.",
-            "3,589 early warnings triggered for projects with predictive risk index crossing threshold T* >= 0.28."
+            f"Total projects monitored: **{tot:,}** (across all states and sectors)",
+            f"Risk distribution: **{crit:,}** Critical | **{high:,}** High | **{mod:,}** Moderate | **{low:,}** Low",
+            f"Total original sanctioned cost: ₹**{cost:,.0f}** Crore | Total cost overrun: ₹**{overrun:,.0f}** Crore",
+            f"Early warning threshold: T* >= 0.28 (XGBoost Risk Engine v1)",
         ]
         actions = [
-            "Show highest-risk projects",
-            "Analyse main risk drivers across Maharashtra",
-            "Break down risk by sector and agency",
-            "Examine cost and schedule exposure"
+            "Show highest-risk projects in detail",
+            "Analyse risk and cost exposure by state",
+            "Break down by sector and agency",
+            "Examine schedule delays and completion trends"
         ]
         return answer, findings, actions
+
