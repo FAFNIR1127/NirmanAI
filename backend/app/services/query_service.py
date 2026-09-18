@@ -34,6 +34,7 @@ def query_projects(
     sector: str = None,
     agency: str = None,
     state: str = None,
+    ministry: str = None,
     risk_category: str = None,
     min_cost: float = None,
     max_cost: float = None,
@@ -54,6 +55,31 @@ def query_projects(
     if sector and sector not in ("All", "All Sectors"):
         conditions.append("LOWER(COALESCE(p.sector, '')) LIKE :sector")
         params["sector"] = f"%{sector.strip().lower()}%"
+
+    if ministry and ministry not in ("All", "All Ministries"):
+        min_lower = ministry.strip().lower()
+        # Map common ministry strings to sectors or keyword matches
+        if "rail" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%rail%' OR LOWER(COALESCE(p.agency, '')) IN ('rvnl', 'ircon', 'dfccil', 'mrll', 'krcl', 'cr', 'nr', 'wr', 'sr', 'er'))")
+        elif "road" in min_lower or "high" in min_lower or "transport" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%road%' OR LOWER(COALESCE(p.agency, '')) IN ('nhai', 'nhidcl', 'morth'))")
+        elif "power" in min_lower or "energy" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%power%' OR LOWER(COALESCE(p.agency, '')) IN ('ntpc', 'pgcil', 'nhpc', 'sjvn', 'neepco', 'thdc'))")
+        elif "petrol" in min_lower or "gas" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%petrol%' OR LOWER(COALESCE(p.agency, '')) IN ('ongc', 'iocl', 'bpcl', 'hpcl', 'gail', 'oil', 'nrl', 'mrpl'))")
+        elif "coal" in min_lower or "mine" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%coal%' OR LOWER(COALESCE(p.sector, '')) LIKE '%mine%' OR LOWER(COALESCE(p.agency, '')) IN ('cil', 'secl', 'wcl', 'mcl', 'ccl', 'ecl', 'ncl', 'bcl', 'nmdc'))")
+        elif "aviation" in min_lower or "airport" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%aviation%' OR LOWER(COALESCE(p.agency, '')) IN ('aai', 'ai'))")
+        elif "port" in min_lower or "ship" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%port%' OR LOWER(COALESCE(p.sector, '')) LIKE '%ship%')")
+        elif "telecom" in min_lower or "comm" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%telecom%')")
+        elif "urban" in min_lower or "housing" in min_lower:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE '%urban%' OR LOWER(COALESCE(p.sector, '')) LIKE '%housing%')")
+        else:
+            conditions.append("(LOWER(COALESCE(p.sector, '')) LIKE :min_raw OR LOWER(COALESCE(p.agency, '')) LIKE :min_raw)")
+            params["min_raw"] = f"%{min_lower}%"
 
     if agency and agency not in ("All", "All Agencies"):
         conditions.append("LOWER(COALESCE(p.agency, '')) LIKE :agency")
@@ -225,3 +251,73 @@ def compare_projects(project_codes: list):
 def get_project_by_code(project_code: str):
     res = compare_projects([project_code])
     return res[0] if res else None
+
+
+def get_filter_options():
+    engine = get_db_engine()
+    with engine.connect() as conn:
+        agency_rows = conn.execute(sqlalchemy.text("""
+            SELECT agency, COUNT(*) as cnt 
+            FROM projects 
+            WHERE agency IS NOT NULL AND agency != '' 
+            GROUP BY agency 
+            ORDER BY cnt DESC 
+            LIMIT 50
+        """)).fetchall()
+        agencies = [r[0] for r in agency_rows]
+
+        state_rows = conn.execute(sqlalchemy.text("""
+            SELECT DISTINCT state 
+            FROM projects 
+            WHERE state IS NOT NULL AND state != '' 
+            ORDER BY state ASC
+        """)).fetchall()
+        raw_states = [r[0].strip() for r in state_rows if r[0] and len(r[0].strip()) > 1]
+        
+        # Canonical Indian States & UTs
+        canonical_states = [
+            "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+            "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+            "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+            "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+            "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+            "Uttar Pradesh", "Uttarakhand", "West Bengal",
+            "Andaman and Nicobar", "Chandigarh", "Dadra and Nagar Haveli",
+            "Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh",
+            "Lakshadweep", "Puducherry", "Multi-State"
+        ]
+        
+        # Merge canonical with any clean custom states (length <= 30 and no digit prefixes)
+        extra_states = [s for s in raw_states if len(s) <= 30 and not s[0].isdigit() and s not in canonical_states and not s.startswith("&")]
+        states = sorted(canonical_states + extra_states)
+
+
+        sector_rows = conn.execute(sqlalchemy.text("""
+            SELECT DISTINCT sector 
+            FROM projects 
+            WHERE sector IS NOT NULL AND sector != '' 
+            ORDER BY sector ASC
+        """)).fetchall()
+        sectors = [r[0] for r in sector_rows]
+
+    ministries = [
+        "Ministry of Railways",
+        "Ministry of Road Transport and Highways",
+        "Ministry of Petroleum and Natural Gas",
+        "Ministry of Power",
+        "Ministry of Coal & Mines",
+        "Ministry of Civil Aviation",
+        "Ministry of Ports, Shipping and Waterways",
+        "Ministry of Communications",
+        "Ministry of Housing and Urban Affairs",
+        "Ministry of Heavy Industries & Steel"
+    ]
+
+    return {
+        "agencies": agencies,
+        "states": states,
+        "sectors": sectors,
+        "ministries": ministries,
+        "risk_categories": ["Critical", "High", "Moderate", "Low"]
+    }
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Search, Bot, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Activity, Search, Bot, ShieldCheck, RefreshCw, LogOut, User } from 'lucide-react';
 import api from '../../services/apiClient';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onSelectProject: (code: string) => void;
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAssistantOpen,
   activeProjectCode,
 }) => {
+  const { user, logout } = useAuth();
   const [health, setHealth] = useState<{ status: string; database_status: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -122,6 +124,27 @@ export const Header: React.FC<HeaderProps> = ({
             <span>AI Copilot</span>
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
           </button>
+
+          {/* User Profile & Logout */}
+          {user && (
+            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-700">
+              <div className="hidden xl:block text-right">
+                <div className="text-[11px] font-bold text-slate-100 leading-tight flex items-center justify-end gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  {user.name}
+                </div>
+                <div className="text-[9px] text-blue-300 font-mono">{user.role}</div>
+              </div>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-red-600/80 rounded-md border border-slate-700 hover:border-red-500 transition"
+                title="Sign Out from Authorised Session"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[11px] font-medium">Exit</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

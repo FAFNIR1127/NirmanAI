@@ -200,3 +200,27 @@ export interface MLPredictionResponse {
   inference_latency_ms: number;
 }
 
+export interface UserProfile {
+  username: string;
+  name: string;
+  designation: string;
+  department: string;
+  role: string;
+  email: string;
+  last_login: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: UserProfile;
+  message: string;
+}
+
+export interface FilterOptionsResponse {
+  agencies: string[];
+  states: string[];
+  sectors: string[];
+  ministries: string[];
+  risk_categories: string[];
+}
+

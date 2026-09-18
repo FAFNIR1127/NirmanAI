@@ -12,12 +12,29 @@ import { SystemHealth } from './components/health/SystemHealth';
 import { RiskSimulator } from './components/simulator/RiskSimulator';
 import { AIAssistantDrawer } from './components/assistant/AIAssistantDrawer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './components/auth/LoginPage';
 
-export function App() {
+function NirmanPlatform() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [activeProjectCode, setActiveProjectCode] = useState<string | null>(null);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [assistantQuery, setAssistantQuery] = useState<string | undefined>(undefined);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
+        <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
+        <h2 className="text-base font-bold tracking-tight">Verifying Authorised Admin Session...</h2>
+        <p className="text-xs text-slate-400 mt-1 font-mono">Government of India &bull; MoSPI IPMD</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const handleSelectProject = (code: string) => {
     if (!code) {
@@ -122,6 +139,14 @@ export function App() {
       {/* Footer */}
       <Footer />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <NirmanPlatform />
+    </AuthProvider>
   );
 }
 

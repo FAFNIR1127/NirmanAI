@@ -1,14 +1,17 @@
 import axios from 'axios';
 import {
   PortfolioKPIs,
-  ProjectListResponse,
   EarlyWarningsResponse,
   RiskIntelligenceResponse,
+  ProjectListResponse,
   DocumentSearchResponse,
   AssistantChatResponse,
   GeographicRiskResponse,
   MLPredictionRequest,
-  MLPredictionResponse
+  MLPredictionResponse,
+  UserProfile,
+  LoginResponse,
+  FilterOptionsResponse
 } from '../types/api';
 
 const API_BASE_URL = '/api';
@@ -19,6 +22,14 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 60000,
+});
+
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('nirman_auth_token');
+  if (token && config.headers) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const api = {
@@ -52,7 +63,9 @@ export const api = {
   // Projects Explorer (with live search, filters, pagination, and sorting)
   async getProjects(params: {
     sector?: string;
+    agency?: string;
     state?: string;
+    ministry?: string;
     risk_category?: string;
     search?: string;
     min_cost?: number;
@@ -65,7 +78,9 @@ export const api = {
     const q = new URLSearchParams();
     if (params.search) q.append('search', params.search);
     if (params.sector) q.append('sector', params.sector);
+    if (params.agency) q.append('agency', params.agency);
     if (params.state) q.append('state', params.state);
+    if (params.ministry) q.append('ministry', params.ministry);
     if (params.risk_category) q.append('risk_category', params.risk_category);
     if (params.min_cost !== undefined) q.append('min_cost', String(params.min_cost));
     if (params.max_cost !== undefined) q.append('max_cost', String(params.max_cost));
@@ -278,6 +293,34 @@ export const api = {
   // ML Model Info & Cryptographic Provenance
   async getMLModelInfo(): Promise<any> {
     const res = await client.get('/ml/model_info');
+    return res.data;
+  },
+
+  // Authorised Government Admin Authentication
+  async login(payload: { username: string; password: string }): Promise<LoginResponse> {
+    const res = await client.post('/auth/login', payload);
+    return res.data;
+  },
+
+  async getMe(): Promise<UserProfile> {
+    const res = await client.get('/auth/me');
+    return res.data;
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await client.post('/auth/logout');
+    } catch (e) {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('nirman_auth_token');
+      localStorage.removeItem('nirman_auth_user');
+    }
+  },
+
+  // Dynamic Portfolio Filter Options
+  async getFilterOptions(): Promise<FilterOptionsResponse> {
+    const res = await client.get('/projects/filter_options');
     return res.data;
   }
 };

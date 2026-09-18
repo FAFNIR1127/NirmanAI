@@ -3,10 +3,14 @@ from fastapi import APIRouter, HTTPException, Query
 from backend.app.schemas.project import ProjectSummary, ProjectDetail, ProjectPaginatedResponse
 from backend.app.schemas.analytics import ProjectComparisonItem
 from backend.app.services.project_service import list_projects_summary, get_project_details
-from backend.app.services.query_service import search_projects, filter_projects, compare_projects, query_projects
+from backend.app.services.query_service import search_projects, filter_projects, compare_projects, query_projects, get_filter_options
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
+
+@router.get("/filter_options", summary="Get Distinct Filter Lists for Agencies, States, Sectors and Ministries")
+def get_project_filter_options():
+    return get_filter_options()
 
 
 @router.get("", response_model=ProjectPaginatedResponse)
@@ -15,6 +19,7 @@ def get_projects(
     sector: Optional[str] = None,
     agency: Optional[str] = None,
     state: Optional[str] = None,
+    ministry: Optional[str] = None,
     risk_category: Optional[str] = None,
     min_cost: Optional[float] = None,
     max_cost: Optional[float] = None,
@@ -28,6 +33,7 @@ def get_projects(
         sector=sector,
         agency=agency,
         state=state,
+        ministry=ministry,
         risk_category=risk_category,
         min_cost=min_cost,
         max_cost=max_cost,
@@ -36,6 +42,7 @@ def get_projects(
         sort_by=sort_by,
         order=order
     )
+
 
 
 @router.get("/search", response_model=List[ProjectSummary])

@@ -12,7 +12,7 @@ from backend.app.middleware.error_handler import (
     http_exception_handler, validation_exception_handler, generic_exception_handler
 )
 
-from backend.app.routes import health, projects, risk, analytics, documents, assistant, risk_intelligence, ml
+from backend.app.routes import health, projects, risk, analytics, documents, assistant, risk_intelligence, ml, auth
 
 # Initialize Structured Logging
 setup_logging()
@@ -49,6 +49,7 @@ app.include_router(documents.router)
 app.include_router(assistant.router)
 app.include_router(risk_intelligence.router)
 app.include_router(ml.router)
+app.include_router(auth.router)
 
 from pathlib import Path
 figures_dir = Path("/Users/sanket/SIH/NirmanAnti/reports/figures")
