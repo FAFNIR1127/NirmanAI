@@ -50,8 +50,8 @@ class RiskEngineService:
         score = float(row["risk_score"])
         category = str(row["risk_category"])
         
-        drivers_raw = row["key_risk_drivers"]
-        protective_raw = row["protective_factors"]
+        drivers_raw = row.get("key_risk_drivers")
+        protective_raw = row.get("protective_factors")
         
         drivers = json.loads(drivers_raw) if isinstance(drivers_raw, str) else (drivers_raw if isinstance(drivers_raw, list) else [])
         protective = json.loads(protective_raw) if isinstance(protective_raw, str) else (protective_raw if isinstance(protective_raw, list) else [])
