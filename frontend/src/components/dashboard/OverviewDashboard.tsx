@@ -308,56 +308,143 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </div>
         </div>
 
-        {/* Chart B: Risk Tier Distribution Donut Chart (5 Cols) */}
+        {/* Chart B: Risk Tier Distribution Redesign (5 Cols) */}
         <div className="lg:col-span-5 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-bold text-gov-navy flex items-center gap-2">
                   <PieIcon className="w-4 h-4 text-emerald-600" />
                   Portfolio Risk Tier Distribution
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Breakdown by XGBoost calibrated probability tiers
+                <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                  Breakdown by XGBoost calibrated probability tiers (Cutoff T* &ge; 0.25)
                 </p>
               </div>
+              <span className="text-xs font-mono font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md border border-blue-300">
+                5,461 Projects
+              </span>
             </div>
 
-            <div className="h-72 w-full mt-2 flex items-center justify-center">
+            {/* Donut Chart with Centered Metric */}
+            <div className="relative h-48 w-full flex items-center justify-center my-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={riskPieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius={48}
+                    outerRadius={74}
                     paddingAngle={3}
                     dataKey="value"
                   >
                     {riskPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: any, name: any) => [`${Number(value).toLocaleString('en-IN')} Projects`, name]}
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
-                  />
-                  <Legend
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    iconType="circle"
-                    formatter={(value) => <span className="text-[11px] text-slate-700 font-medium">{value}</span>}
+                    formatter={(value: any, name: any) => [`${Number(value).toLocaleString('en-IN')} Projects (${((Number(value) / (kpis.total_projects || 5461)) * 100).toFixed(1)}%)`, name]}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 600, border: 'none', padding: '8px 12px' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
+              {/* Centered Overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                <span className="text-xl font-extrabold text-slate-900 font-mono leading-none">
+                  {kpis.total_projects ? kpis.total_projects.toLocaleString('en-IN') : '5,461'}
+                </span>
+                <span className="text-[11px] text-slate-600 font-bold uppercase tracking-wider mt-1">Monitored</span>
+              </div>
+            </div>
+
+            {/* High-Contrast 4-Tier Breakdown Cards */}
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {/* Tier 1: Critical */}
+              <div className="p-3 rounded-lg border-2 border-red-300 bg-red-50/80 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-red-900">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shrink-0"></span>
+                    Critical Risk
+                  </span>
+                  <span className="text-xs font-mono font-extrabold text-red-800 bg-red-200/80 px-2 py-0.5 rounded">
+                    {((criticalCount / (kpis.total_projects || 5461)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-base font-extrabold text-slate-950 font-mono">{criticalCount.toLocaleString('en-IN')}</span>
+                  <span className="text-[11px] text-red-800 font-bold font-mono">T* &ge; 0.50</span>
+                </div>
+                <div className="w-full bg-red-200 h-2 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-red-600 h-full rounded-full" style={{ width: `${Math.max(5, (criticalCount / (kpis.total_projects || 5461)) * 100)}%` }}></div>
+                </div>
+              </div>
+
+              {/* Tier 2: High */}
+              <div className="p-3 rounded-lg border-2 border-orange-300 bg-orange-50/80 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-orange-900">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-600 shrink-0"></span>
+                    High Risk
+                  </span>
+                  <span className="text-xs font-mono font-extrabold text-orange-800 bg-orange-200/80 px-2 py-0.5 rounded">
+                    {((highCount / (kpis.total_projects || 5461)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-base font-extrabold text-slate-950 font-mono">{highCount.toLocaleString('en-IN')}</span>
+                  <span className="text-[11px] text-orange-800 font-bold font-mono">T* &ge; 0.25</span>
+                </div>
+                <div className="w-full bg-orange-200 h-2 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-orange-600 h-full rounded-full" style={{ width: `${Math.max(5, (highCount / (kpis.total_projects || 5461)) * 100)}%` }}></div>
+                </div>
+              </div>
+
+              {/* Tier 3: Moderate */}
+              <div className="p-3 rounded-lg border-2 border-amber-300 bg-amber-50/80 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                    Moderate Risk
+                  </span>
+                  <span className="text-xs font-mono font-extrabold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded">
+                    {((moderateCount / (kpis.total_projects || 5461)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-base font-extrabold text-slate-950 font-mono">{moderateCount.toLocaleString('en-IN')}</span>
+                  <span className="text-[11px] text-amber-800 font-bold font-mono">Watchlist</span>
+                </div>
+                <div className="w-full bg-amber-200 h-2 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.max(5, (moderateCount / (kpis.total_projects || 5461)) * 100)}%` }}></div>
+                </div>
+              </div>
+
+              {/* Tier 4: Normal / Low */}
+              <div className="p-3 rounded-lg border-2 border-emerald-300 bg-emerald-50/80 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-900">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                    Normal / Low
+                  </span>
+                  <span className="text-xs font-mono font-extrabold text-emerald-800 bg-emerald-200/80 px-2 py-0.5 rounded">
+                    {((normalCount / (kpis.total_projects || 5461)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-base font-extrabold text-slate-950 font-mono">{normalCount.toLocaleString('en-IN')}</span>
+                  <span className="text-[11px] text-emerald-800 font-bold font-mono">Baseline</span>
+                </div>
+                <div className="w-full bg-emerald-200 h-2 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${Math.max(5, (normalCount / (kpis.total_projects || 5461)) * 100)}%` }}></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-            <span>High/Critical Share: <strong className="text-red-600">{((criticalCount + highCount) / (kpis.total_projects || 5461) * 100).toFixed(1)}%</strong></span>
-            <span>Normal Portfolio: <strong className="text-emerald-600">{(normalCount / (kpis.total_projects || 5461) * 100).toFixed(1)}%</strong></span>
+          <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-700 font-semibold">
+            <span>High/Critical Total: <strong className="text-red-700 font-mono text-sm font-extrabold">{((criticalCount + highCount) / (kpis.total_projects || 5461) * 100).toFixed(1)}%</strong> ({criticalCount + highCount} projects)</span>
+            <span>Normal Baseline: <strong className="text-emerald-700 font-mono text-sm font-extrabold">{((normalCount) / (kpis.total_projects || 5461) * 100).toFixed(1)}%</strong></span>
           </div>
         </div>
       </div>
