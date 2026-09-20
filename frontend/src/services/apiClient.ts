@@ -122,8 +122,20 @@ export const api = {
 
 
   // Early Warning Alerts Stream
-  async getEarlyWarnings(): Promise<EarlyWarningsResponse> {
-    const res = await client.get('/risk/early_warnings');
+  async getEarlyWarnings(params?: {
+    limit?: number;
+    sector?: string;
+    risk_category?: string;
+    search?: string;
+  }): Promise<EarlyWarningsResponse> {
+    const q = new URLSearchParams();
+    if (params?.limit) q.append('limit', String(params.limit));
+    if (params?.sector) q.append('sector', params.sector);
+    if (params?.risk_category) q.append('risk_category', params.risk_category);
+    if (params?.search) q.append('search', params.search);
+
+    const qs = q.toString();
+    const res = await client.get(`/risk/early_warnings${qs ? `?${qs}` : ''}`);
     const rawList = Array.isArray(res.data) ? res.data : (res.data.alerts || []);
 
     const alerts = rawList.map((a: any) => ({
@@ -135,12 +147,13 @@ export const api = {
       primary_trigger: a.urgency_reason || "Triggered XGBoost Risk Threshold",
       cost_overrun_cr: a.cost_overrun_cr || 0,
       delay_months: a.delay_months || 0,
-      summary: a.urgency_reason || "High risk escalation detected."
+      summary: a.urgency_reason || "High risk escalation detected.",
+      state: a.state || a.state_name || undefined
     }));
 
     return {
       total_alerts: alerts.length,
-      threshold_used: 0.28,
+      threshold_used: 0.25,
       alerts
     };
   },
@@ -252,11 +265,7 @@ export const api = {
         snippet: c.snippet || c.title,
         rrf_score: 0.95
       })),
-      suggested_followups: d.next_actions && d.next_actions.length > 0 ? d.next_actions : [
-        "What are the top risk drivers for this project?",
-        "Summarize cost overrun exposure.",
-        "Show historical PAIMANA document evidence."
-      ],
+      suggested_followups: Array.isArray(d.next_actions) ? d.next_actions : [],
       active_project_code: projectCode || null
     };
   },

@@ -11,7 +11,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, activeProjectCode }) => {
   const tabs = [
-    { id: 'overview', label: 'Executive Overview', icon: LayoutDashboard },
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'portfolio', label: 'Portfolio Explorer', icon: Table },
     { id: 'risk', label: 'Risk Intelligence', icon: AlertTriangle, badge: activeProjectCode ? activeProjectCode : null },
     { id: 'evidence', label: 'Audit Evidence (RAG)', icon: FileSearch },

@@ -59,6 +59,7 @@ export interface EarlyWarningAlert {
   cost_overrun_cr: number;
   delay_months: number;
   summary: string;
+  state?: string;
 }
 
 export interface EarlyWarningsResponse {

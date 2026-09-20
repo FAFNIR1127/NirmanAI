@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { 
   Bot, Send, X, Sparkles, RefreshCcw, User, AlertCircle, Copy, Check, 
   ChevronDown, ChevronUp, Cpu, Database, ShieldAlert, FileText, CheckCircle2,
-  Maximize2, Minimize2, ArrowUpRight, Building2
+  Maximize2, Minimize2, ArrowUpRight, Building2, HelpCircle
 } from 'lucide-react';
 import api from '../../services/apiClient';
 import { AssistantChatResponse, CitedDocument } from '../../types/api';
@@ -37,11 +37,11 @@ interface AIAssistantDrawerProps {
 
 /** Rich Markdown styling */
 const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
-  h1: ({ children }) => <h1 className="text-sm font-extrabold text-slate-900 mt-3 mb-1.5">{children}</h1>,
+  h1: ({ children }) => <h1 className="text-sm font-extrabold text-slate-900 mt-3 mb-1.5 border-b border-slate-200 pb-1">{children}</h1>,
   h2: ({ children }) => <h2 className="text-sm font-bold text-slate-800 mt-2.5 mb-1">{children}</h2>,
-  h3: ({ children }) => <h3 className="text-xs font-bold text-slate-800 mt-2 mb-1">{children}</h3>,
-  h4: ({ children }) => <h4 className="text-xs font-semibold text-slate-700 mt-1 mb-0.5">{children}</h4>,
-  p: ({ children }) => <p className="text-xs text-slate-800 leading-relaxed mb-1.5">{children}</p>,
+  h3: ({ children }) => <h3 className="text-xs font-bold text-indigo-900 mt-2.5 mb-1 flex items-center gap-1">{children}</h3>,
+  h4: ({ children }) => <h4 className="text-xs font-semibold text-slate-700 mt-1.5 mb-0.5">{children}</h4>,
+  p: ({ children }) => <p className="text-xs text-slate-800 leading-relaxed mb-2">{children}</p>,
   ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2 ml-1 text-xs text-slate-700">{children}</ul>,
   ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2 ml-1 text-xs text-slate-700">{children}</ol>,
   li: ({ children }) => <li className="text-xs text-slate-700 leading-relaxed">{children}</li>,
@@ -49,7 +49,7 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
   em: ({ children }) => <em className="italic text-slate-600">{children}</em>,
   code: ({ children }) => <code className="bg-slate-100 text-blue-700 text-[11px] px-1 py-0.5 rounded font-mono font-semibold border border-slate-200">{children}</code>,
   blockquote: ({ children }) => (
-    <blockquote className="border-l-2 border-blue-500 bg-blue-50/50 pl-2.5 py-1 my-1.5 text-slate-700 italic text-[11px] rounded-r">
+    <blockquote className="border-l-2 border-indigo-500 bg-indigo-50/40 pl-2.5 py-1.5 my-2 text-slate-700 italic text-[11px] rounded-r">
       {children}
     </blockquote>
   ),
@@ -64,15 +64,15 @@ const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
       <table className="text-[11px] border-collapse w-full">{children}</table>
     </div>
   ),
-  th: ({ children }) => <th className="border-b border-slate-200 px-2 py-1 bg-slate-100 font-bold text-slate-800 text-left">{children}</th>,
-  td: ({ children }) => <td className="border-b border-slate-100 px-2 py-1 text-slate-700 font-medium">{children}</td>,
+  th: ({ children }) => <th className="border-b border-slate-200 px-2.5 py-1 bg-slate-100 font-bold text-slate-800 text-left">{children}</th>,
+  td: ({ children }) => <td className="border-b border-slate-100 px-2.5 py-1 text-slate-700 font-medium">{children}</td>,
 };
 
 const THINKING_STEPS_FLOW = [
-  { label: "Query Ingestion", detail: "Parsing infrastructure intent & extracting project codes..." },
-  { label: "Vector Search", detail: "Scanning 331,206 PAIMANA audit chunks & MoSPI Flash Reports..." },
-  { label: "Risk Synthesis", detail: "Evaluating calibrated XGBoost risk attributions & SHAP values..." },
-  { label: "Executive Formulation", detail: "Generating policy recommendations and official citations..." }
+  { label: "Query Ingestion & Entity Resolution", detail: "Parsing infrastructure intent, project codes & analytical scope..." },
+  { label: "Live Database & Vector Retrieval", detail: "Querying PostgreSQL live metrics & scanning 331k PAIMANA vectors..." },
+  { label: "ML Risk & SHAP Decomposition", detail: "Evaluating calibrated XGBoost risk probabilities & driver impacts..." },
+  { label: "Executive Intelligence Synthesis", detail: "Synthesizing detailed policy analysis & dynamic follow-up options..." }
 ];
 
 export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
@@ -82,33 +82,32 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   initialQuery,
   onSelectProject
 }) => {
-  const [messages, setMessages] = useState<MessageItem[]>([
-    {
-      id: 'welcome',
-      sender: 'assistant',
-      text: activeProjectCode
-        ? `Greetings. I am **Nirman AI Copilot** — grounded in live surveillance data across all 5,461 projects.\n\nActive surveillance context is locked to **\`${activeProjectCode}\`**. Ask me about its cost expansion, schedule delay, physical progress, or PAIMANA Flash Report evidence.`
-        : `Greetings. I am **Nirman AI Copilot**, powered by Gemini and grounded in 5,461 live infrastructure projects (PostgreSQL + SQLite), calibrated XGBoost risk models, and 331,206 PAIMANA audit report vectors.\n\nAsk me anything about national infrastructure monitoring. For example:\n- *"Why is Western Dedicated Freight Corridor (N22000464) labeled Critical?"*\n- *"What are the top 5 railway projects by cost overrun?"*\n- *"Compare Mumbai Metro Line 3 with DMRTS Phase 4."*`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      followups: activeProjectCode
-        ? [
-          `What are the main risk drivers for ${activeProjectCode}?`,
-          `What is the cost overrun for ${activeProjectCode}?`,
-          'Show latest milestone progress'
-        ]
-        : [
-          'Why is Western DFC critical risk?',
-          'Top 5 projects with highest cost overrun',
-          'Which sectors have the most delay?'
-        ],
-      thoughtSteps: [
-        { label: "Surveillance Baseline", detail: "Verified live connectivity with PostgreSQL nirman_db." },
-        { label: "Model Governance", detail: "Calibrated XGBoost severe risk classifier active (Threshold T* = 0.25)." }
+  const getInitialMessage = (pCode: string | null): MessageItem => ({
+    id: 'welcome',
+    sender: 'assistant',
+    text: pCode
+      ? `Greetings. I am **Nirman AI Copilot** — grounded in live surveillance data across all 5,461 projects.\n\nActive surveillance context is locked to **\`${pCode}\`**. I can analyze its financial cost expansion, schedule delay, physical execution status, or official PAIMANA Flash Report audit findings.`
+      : `Greetings. I am **Nirman AI Copilot**, powered by Gemini and grounded in 5,461 live infrastructure projects (PostgreSQL + SQLite), calibrated XGBoost risk models, and 331,206 PAIMANA audit report vectors.\n\nAsk me anything regarding national infrastructure intelligence, cost overrun root causes, agency performance, or specific project bottlenecks.`,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    followups: pCode
+      ? [
+        `What are the primary cost overrun factors for ${pCode}?`,
+        `Analyze schedule delay and anticipated completion for ${pCode}`,
+        `What do PAIMANA audit reports cite for ${pCode}?`
+      ]
+      : [
+        'Which sectors account for the highest cumulative cost overrun?',
+        'What are the primary root causes of critical risk project delays?',
+        'Show top 5 railway projects with major schedule slippage'
       ],
-      thoughtDurationSec: 0.8
-    }
-  ]);
+    thoughtSteps: [
+      { label: "Live Database Handshake", detail: "Verified live connection with PostgreSQL nirman_db." },
+      { label: "Surveillance Governance", detail: "Calibrated XGBoost severe risk engine active (Threshold T* = 0.28)." }
+    ],
+    thoughtDurationSec: 0.8
+  });
 
+  const [messages, setMessages] = useState<MessageItem[]>([getInitialMessage(activeProjectCode)]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -119,6 +118,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<any>(null);
+  const lastSentInitialQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -128,8 +128,12 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   }, [messages, isOpen, loading, currentStepIndex]);
 
   useEffect(() => {
-    if (initialQuery && isOpen) {
+    if (initialQuery && isOpen && lastSentInitialQueryRef.current !== initialQuery) {
+      lastSentInitialQueryRef.current = initialQuery;
       handleSendMessage(initialQuery);
+    }
+    if (!isOpen) {
+      lastSentInitialQueryRef.current = null;
     }
   }, [initialQuery, isOpen]);
 
@@ -145,7 +149,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
 
       const stepInterval = setInterval(() => {
         setCurrentStepIndex(prev => (prev < THINKING_STEPS_FLOW.length - 1 ? prev + 1 : prev));
-      }, 700);
+      }, 850);
 
       timerRef.current = { interval, stepInterval };
 
@@ -185,10 +189,10 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
         followups: res.suggested_followups || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         thoughtSteps: [
-          { label: "Intent Parsed", detail: `Identified entities and queries for live infrastructure monitoring.` },
-          { label: "MoSPI Evidence Retrieval", detail: `Matched ${res.cited_documents?.length || 3} official PAIMANA chunks.` },
-          { label: "XGBoost Probability", detail: `Evaluated calibrated project risk metrics and cost expansion ratios.` },
-          { label: "Executive Synthesis", detail: `Formulated actionable intelligence grounded strictly in verified data.` }
+          { label: "Multi-Dimensional Intent", detail: "Parsed entities, focus attributes & governance scope." },
+          { label: "Evidence Retrieval", detail: `Matched ${res.cited_documents?.length || 3} official PAIMANA chunks & live relational records.` },
+          { label: "Calibrated Risk Evaluation", detail: "Computed XGBoost risk probabilities and SHAP driver attributions." },
+          { label: "Policy Synthesis", detail: "Synthesized executive intelligence and dynamically formulated follow-up options." }
         ],
         thoughtDurationSec: elapsedSec
       };
@@ -200,7 +204,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
         id: `err-${Date.now()}`,
         sender: 'assistant',
         text: isTimeout
-          ? '⏱ The response took longer than usual. The intelligence backend is under load. Please retry in a moment.'
+          ? '⏱ The intelligence reasoning process took longer than expected under load. Please retry momentarily.'
           : '⚠️ Could not reach the Nirman Intelligence backend. Please ensure the server is active on port 8000.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isError: true
@@ -227,7 +231,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[520px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-y-0 right-0 w-full sm:w-[540px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200">
       {/* Sleek Copilot Header */}
       <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between border-b border-slate-800 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -242,12 +246,12 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               <h3 className="font-extrabold text-sm tracking-tight text-white flex items-center gap-1.5">
                 NIRMAN AI Copilot
               </h3>
-              <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 px-1.5 py-0.5 rounded">
-                2.0 Live
+              <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-1.5 py-0.5 rounded">
+                v2.0 Deep Reasoning
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium">
-              {activeProjectCode ? `Locked Context: ${activeProjectCode}` : '5,461 Projects • 331k PAIMANA Chunks • XGBoost'}
+              {activeProjectCode ? `Locked Context: ${activeProjectCode}` : '5,461 Projects • 331k PAIMANA Chunks • XGBoost Risk'}
             </p>
           </div>
         </div>
@@ -303,7 +307,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             </div>
 
             {/* Message Card */}
-            <div className={`max-w-[94%] rounded-2xl px-4 py-3 shadow-xs ${
+            <div className={`max-w-[95%] rounded-2xl px-4 py-3.5 shadow-xs ${
               msg.sender === 'user'
                 ? 'bg-slate-900 text-white rounded-br-none text-xs leading-relaxed font-medium'
                 : msg.isError
@@ -319,7 +323,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                   >
                     <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                     <span>
-                      {expandedReasoning[msg.id] ? "Hide Reasoning Process" : `Verified Reasoning (${msg.thoughtDurationSec || 1.2}s)`}
+                      {expandedReasoning[msg.id] ? "Hide Reasoning Chain" : `Verified Reasoning Chain (${msg.thoughtDurationSec || 1.2}s)`}
                     </span>
                     {expandedReasoning[msg.id] ? (
                       <ChevronUp className="w-3.5 h-3.5 text-indigo-500 ml-1" />
@@ -380,7 +384,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                 </div>
               )}
 
-              {/* Bottom Card Actions: Copy & Feedback */}
+              {/* Bottom Card Actions: Copy & Verification badge */}
               {msg.sender === 'assistant' && !msg.isError && (
                 <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                   <span className="font-mono text-[10px]">Verified against MoSPI Flash Reports</span>
@@ -404,35 +408,41 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                 </div>
               )}
 
-              {/* Suggested Followups */}
+              {/* Dynamic Follow-Up & Clarifying Questions */}
               {msg.followups && msg.followups.length > 0 && !msg.isError && (
-                <div className="pt-2 mt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
-                  {msg.followups.slice(0, 3).map((f, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSendMessage(f)}
-                      disabled={loading}
-                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-semibold transition text-left flex items-center gap-1 shadow-2xs"
-                    >
-                      <Sparkles className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                      <span className="line-clamp-1">{f}</span>
-                    </button>
-                  ))}
+                <div className="pt-3 mt-3 border-t border-slate-100 space-y-2">
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                    Suggested Follow-Up & Exploration Questions
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    {msg.followups.map((f, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSendMessage(f)}
+                        disabled={loading}
+                        className="w-full text-left p-2.5 bg-indigo-50/80 hover:bg-indigo-100/90 text-indigo-950 border border-indigo-200/80 rounded-xl text-xs font-medium transition flex items-start justify-between group shadow-2xs gap-2"
+                      >
+                        <span className="flex-1 whitespace-normal break-words leading-relaxed">{f}</span>
+                        <ArrowUpRight className="w-4 h-4 text-indigo-400 group-hover:text-indigo-700 transition shrink-0 mt-0.5" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         ))}
 
-        {/* Multi-Stage Animated Thinking State (Inspired by Dribbble Reference) */}
+        {/* Multi-Stage Animated Thinking State */}
         {loading && (
           <div className="flex flex-col items-start space-y-1">
             <div className="flex items-center gap-1.5 text-[11px] text-indigo-600 font-mono px-1">
               <Sparkles className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-              <span className="font-bold">Nirman Copilot is thinking ({thinkingTimer}s)...</span>
+              <span className="font-bold">Nirman Copilot is analyzing ({thinkingTimer}s)...</span>
             </div>
 
-            <div className="w-full max-w-[94%] bg-gradient-to-br from-indigo-50/90 via-blue-50/70 to-purple-50/90 border border-indigo-200/80 rounded-2xl rounded-bl-none p-4 shadow-md space-y-3 relative overflow-hidden">
+            <div className="w-full max-w-[95%] bg-gradient-to-br from-indigo-50/90 via-blue-50/70 to-purple-50/90 border border-indigo-200/80 rounded-2xl rounded-bl-none p-4 shadow-md space-y-3 relative overflow-hidden">
               {/* Animated Shimmer Wave */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
 

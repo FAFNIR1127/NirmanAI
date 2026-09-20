@@ -51,12 +51,26 @@ function NirmanPlatform() {
     setIsAssistantOpen(true);
   };
 
+  const handleCloseAssistant = () => {
+    setIsAssistantOpen(false);
+    setAssistantQuery(undefined);
+  };
+
+  const handleToggleAssistant = () => {
+    if (isAssistantOpen) {
+      handleCloseAssistant();
+    } else {
+      setAssistantQuery(undefined);
+      setIsAssistantOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       {/* Top Header */}
       <Header
         onSelectProject={handleSelectProject}
-        onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
+        onToggleAssistant={handleToggleAssistant}
         isAssistantOpen={isAssistantOpen}
         activeProjectCode={activeProjectCode}
       />
@@ -130,7 +144,7 @@ function NirmanPlatform() {
       {/* AI Copilot Drawer */}
       <AIAssistantDrawer
         isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
+        onClose={handleCloseAssistant}
         activeProjectCode={activeProjectCode}
         initialQuery={assistantQuery}
         onSelectProject={handleSelectProject}

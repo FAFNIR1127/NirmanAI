@@ -138,9 +138,19 @@ def get_prescriptive_recommendations(project_code: str):
 
 @router.get("/early-warnings")
 @router.get("/early_warnings")
-def get_early_warning_projects(limit: int = Query(15, ge=1, le=100)):
+def get_early_warning_projects(
+    limit: int = Query(60, ge=1, le=200),
+    sector: Optional[str] = Query(None),
+    risk_category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None)
+):
     """Retrieve prioritized list of monitored projects crossing operational risk threshold."""
-    return early_warning_service.get_early_warning_projects(limit=limit)
+    return early_warning_service.get_early_warning_projects(
+        limit=limit,
+        sector=sector,
+        risk_category=risk_category,
+        search=search
+    )
 
 
 @router.get("/executive-briefing")

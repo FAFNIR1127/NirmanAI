@@ -15,12 +15,35 @@ class EarlyWarningPrioritizationService:
     def _get_connection(self):
         return psycopg2.connect(DATABASE_URL)
 
-    def get_early_warning_projects(self, limit: int = 15) -> List[Dict[str, Any]]:
+    def get_early_warning_projects(
+        self,
+        limit: int = 60,
+        sector: str = None,
+        risk_category: str = None,
+        search: str = None
+    ) -> List[Dict[str, Any]]:
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Select distinct latest risk observations crossing operational threshold (0.28 / 28.0)
-                cur.execute("""
+                where_clauses = ["(r.predicted_severe_risk_prob >= 0.25 OR r.risk_score >= 25.0)"]
+                params = []
+
+                if sector and sector.strip():
+                    where_clauses.append("(p.sector ILIKE %s OR p.sector ILIKE %s)")
+                    params.extend([sector.strip(), f"%{sector.strip()}%"])
+
+                if risk_category and risk_category.strip() and risk_category.upper() != 'ALL':
+                    where_clauses.append("UPPER(r.risk_category) = %s")
+                    params.append(risk_category.strip().upper())
+
+                if search and search.strip():
+                    where_clauses.append("(p.project_name ILIKE %s OR p.project_code ILIKE %s OR p.agency ILIKE %s)")
+                    params.extend([f"%{search.strip()}%", f"%{search.strip()}%", f"%{search.strip()}%"])
+
+                where_sql = " AND ".join(where_clauses)
+                params.append(limit)
+
+                query = f"""
                     SELECT r.project_code, r.risk_score, r.risk_category, r.predicted_severe_risk_prob,
                            r.cost_risk_index, r.schedule_risk_index, r.reporting_month,
                            p.project_name, p.agency, p.state, p.sector, p.original_cost,
@@ -31,7 +54,6 @@ class EarlyWarningPrioritizationService:
                         SELECT DISTINCT ON (project_code) project_code, risk_score, risk_category,
                                predicted_severe_risk_prob, cost_risk_index, schedule_risk_index, reporting_month
                         FROM risk_scores
-                        WHERE predicted_severe_risk_prob >= 0.28 OR risk_score >= 28.0
                         ORDER BY project_code, reporting_month DESC
                     ) r
                     JOIN projects p ON r.project_code = p.project_code
@@ -40,9 +62,11 @@ class EarlyWarningPrioritizationService:
                         FROM project_observations
                         ORDER BY project_code, reporting_month DESC
                     ) o ON p.project_code = o.project_code
-                    ORDER BY r.risk_score DESC
+                    WHERE {where_sql}
+                    ORDER BY r.risk_score DESC, cost_overrun_cr DESC
                     LIMIT %s;
-                """, (limit,))
+                """
+                cur.execute(query, tuple(params))
                 rows = cur.fetchall()
 
         finally:
@@ -55,10 +79,11 @@ class EarlyWarningPrioritizationService:
             trend = traj.get("trend", "STABLE") if traj else "STABLE"
 
             # Construct explainable urgency rationale
+            raw_category = (r["risk_category"] or "High").capitalize()
             urgency_factors = []
             if r["risk_score"] >= 40.0:
                 urgency_factors.append(f"Critical risk score ({r['risk_score']:.1f}/100)")
-            elif r["risk_score"] >= 28.0:
+            elif r["risk_score"] >= 25.0:
                 urgency_factors.append(f"Moderate-to-high risk score ({r['risk_score']:.1f}/100)")
 
             if trend == "DETERIORATING":
@@ -80,7 +105,7 @@ class EarlyWarningPrioritizationService:
                 "agency": r["agency"],
                 "state": r["state"],
                 "risk_score": float(r["risk_score"]),
-                "risk_category": r["risk_category"],
+                "risk_category": raw_category,
                 "predicted_prob": float(r["predicted_severe_risk_prob"]),
                 "trajectory_trend": trend,
                 "early_warning": True,
