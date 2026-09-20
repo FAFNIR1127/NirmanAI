@@ -30,15 +30,22 @@ class RiskEngineService:
 
     def get_project_risk_assessment(self, project_code: str):
         engine = self.get_db_engine()
-        query = """
-            SELECT r.*, p.project_name, p.agency, p.state
-            FROM risk_scores r
-            JOIN projects p ON r.project_code = p.project_code
-            WHERE r.project_code = :code
-            ORDER BY r.reporting_month DESC
-            LIMIT 1
-        """
         with engine.connect() as conn:
+            try:
+                alias_res = conn.execute(sqlalchemy.text("SELECT canonical_code FROM project_aliases WHERE alias_code = :c"), {"c": project_code}).fetchone()
+                if alias_res and alias_res[0]:
+                    project_code = str(alias_res[0])
+            except Exception:
+                pass
+
+            query = """
+                SELECT r.*, p.project_name, p.agency, p.state
+                FROM risk_scores r
+                JOIN projects p ON r.project_code = p.project_code
+                WHERE r.project_code = :code
+                ORDER BY r.reporting_month DESC
+                LIMIT 1
+            """
             df = pd.read_sql(sqlalchemy.text(query), conn, params={"code": project_code})
             
         if df.empty:

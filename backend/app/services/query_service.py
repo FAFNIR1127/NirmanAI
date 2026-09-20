@@ -49,7 +49,7 @@ def query_projects(
 
     if search:
         s = search.strip().lower()
-        conditions.append("(LOWER(p.project_code) LIKE :search OR LOWER(p.project_name) LIKE :search OR LOWER(COALESCE(p.agency,'')) LIKE :search OR LOWER(COALESCE(p.state,'')) LIKE :search OR LOWER(COALESCE(p.sector,'')) LIKE :search)")
+        conditions.append("(LOWER(p.project_code) LIKE :search OR LOWER(p.project_name) LIKE :search OR LOWER(COALESCE(p.agency,'')) LIKE :search OR LOWER(COALESCE(p.state,'')) LIKE :search OR LOWER(COALESCE(p.sector,'')) LIKE :search OR p.project_code IN (SELECT canonical_code FROM project_aliases WHERE LOWER(alias_code) LIKE :search))")
         params["search"] = f"%{s}%"
 
     if sector and sector not in ("All", "All Sectors"):

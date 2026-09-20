@@ -60,10 +60,18 @@ def list_projects_summary(limit: int = 100):
 
 def get_project_details(project_code: str):
     engine = get_db_engine()
-    query_p = "SELECT * FROM projects WHERE project_code = :code"
-    query_o = "SELECT * FROM project_observations WHERE project_code = :code ORDER BY reporting_month ASC"
     
     with engine.connect() as conn:
+        # Check if project_code is an alias
+        try:
+            alias_res = conn.execute(sqlalchemy.text("SELECT canonical_code FROM project_aliases WHERE alias_code = :c"), {"c": project_code}).fetchone()
+            if alias_res and alias_res[0]:
+                project_code = str(alias_res[0])
+        except Exception:
+            pass
+
+        query_p = "SELECT * FROM projects WHERE project_code = :code"
+        query_o = "SELECT * FROM project_observations WHERE project_code = :code ORDER BY reporting_month ASC"
         df_p = pd.read_sql(sqlalchemy.text(query_p), conn, params={"code": project_code})
         df_o = pd.read_sql(sqlalchemy.text(query_o), conn, params={"code": project_code})
         

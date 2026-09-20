@@ -122,6 +122,28 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     { name: 'Normal / Low', value: normalCount, color: '#10b981' },
   ];
 
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      const total = kpis.total_projects || 5402;
+      const val = Number(data.value) || 0;
+      const pct = ((val / total) * 100).toFixed(1);
+      return (
+        <div className="bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-2xl border border-slate-700 pointer-events-none text-left z-50">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: data.payload.color }} />
+            <span className="text-xs font-extrabold text-white tracking-wide">{data.name}</span>
+          </div>
+          <div className="font-mono text-xs text-white font-bold pl-5">
+            <span className="text-sm font-extrabold text-white">{val.toLocaleString('en-IN')}</span> Projects
+            <span className="ml-1.5 text-xs text-blue-300 font-semibold">({pct}%)</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // Filtered Early Warnings Stream
   const filteredAlerts = alerts.filter(a => {
     const matchesTier =
@@ -343,10 +365,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: any, name: any) => [`${Number(value).toLocaleString('en-IN')} Projects (${((Number(value) / (kpis.total_projects || 5461)) * 100).toFixed(1)}%)`, name]}
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 600, border: 'none', padding: '8px 12px' }}
-                  />
+                  <Tooltip content={<CustomPieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               {/* Centered Overlay */}
